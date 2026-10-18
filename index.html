@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>Interval Coach</title>
+<!--
+  Interval Coach settings page (hosted on GitHub Pages).
+  Data arrives in the URL fragment (#...), which browsers never send to the
+  server, and goes back to the Pebble app via pebblejs://close#...
+  Page version must match CONFIG_PAGE_VERSION expectations in index.js.
+-->
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#f2f2f7;margin:0;color:#1c1c1e}
+button,input{font:inherit}
+button{touch-action:manipulation}
+.hdr{background:#00468B;color:#fff;padding:12px 16px;position:sticky;top:0;z-index:10}
+.hdr-row{display:flex;align-items:center;gap:10px}
+.hdr-text{flex:1;min-width:0}
+.hdr h1{margin:0;font-size:18px}
+.hdr-sub{font-size:12px;opacity:.8;margin-top:2px}
+.icon-circle,.hdr-back,.hist-back,.del-btn,.step-btn{display:inline-flex;align-items:center;justify-content:center;padding:0;text-align:center;line-height:1}
+.icon-glyph{display:block;line-height:1}
+.icon-back .icon-glyph{transform:translate(-1px,-1px)}
+.icon-delete .icon-glyph{transform:translateY(-1px)}
+.icon-minus .icon-glyph{transform:translateY(-2px)}
+.icon-plus .icon-glyph{transform:translateY(-1px)}
+.hdr-back,.hist-back{flex-shrink:0;width:44px;height:44px;border:0;border-radius:22px;background:rgba(255,255,255,.18);color:#fff;font-size:28px;cursor:pointer}
+.section{padding:8px 16px 0}
+.section-title{font-size:12px;font-weight:700;color:#6e6e73;text-transform:uppercase;letter-spacing:.55px;padding:8px 0 5px}
+.card,.form-card{background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.08);margin-bottom:8px}
+.wk-row{display:flex;align-items:center;padding:12px 14px;border-bottom:1px solid #f2f2f7;min-height:60px}
+.wk-row:last-child{border-bottom:none}
+.wk-accent{width:6px;height:40px;border-radius:3px;margin-right:12px}
+.wk-info{flex:1;min-width:0}
+.wk-name{font-size:16px;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wk-sub,.meta{font-size:12px;color:#8e8e93;margin-top:3px}
+.wk-btns{display:flex;gap:2px;margin-left:6px;align-items:center}
+.btn-icon{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;background:none;border:0;padding:0;font-size:18px;color:#636366;cursor:pointer;line-height:1}
+.btn-icon.del{color:#ff3b30}
+.btn-icon.armed,.del-btn.armed{background:#ff3b30;color:#fff}
+.btn-add,.btn-primary,.btn-history{width:100%;border-radius:12px;padding:14px 16px;font-size:16px;font-weight:650;cursor:pointer}
+.btn-add{display:flex;justify-content:center;gap:8px;background:#fff;color:#00468B;border:0;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.btn-add:disabled{background:#e5e5ea;color:#8e8e93;box-shadow:none;cursor:not-allowed}
+.limit-note{display:none;font-size:12px;color:#8e8e93;text-align:center;padding:7px 10px 2px}
+.btn-primary{background:#00468B;color:#fff;border:0}
+.btn-history{margin-top:8px;background:#fff;color:#00468B;border:1px solid #00468B}
+.settings-row{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;background:#fff;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.08);margin-bottom:8px;gap:12px}
+.settings-label{font-size:16px;font-weight:650;display:block}
+.settings-desc{font-size:12px;color:#8e8e93}
+.tag{color:#b26a00;font-size:11px}
+input[type=checkbox]{width:22px;height:22px;flex-shrink:0}
+.experimental-card{display:none;background:#fff8e6;border:1px solid #f1c35b;border-radius:12px;padding:14px 16px;margin:0 0 8px}
+.experimental-card.show{display:block}
+.experimental-title{font-size:15px;font-weight:750;color:#7a4b00}
+.experimental-note{font-size:12px;line-height:1.5;color:#6c4b00;margin-top:6px}
+.cal-row{display:flex;align-items:center;gap:12px;margin-top:12px}
+.cal-slider-wrap{flex:1;min-width:0}
+.cal-slider-wrap input[type=range]{width:100%}
+.cal-scale{position:relative;display:flex;justify-content:space-between;font-size:10px;color:#8e8e93;margin-top:5px}
+.cal-tick-mark{position:absolute;left:calc(33.33% + 4px);top:-6px;width:2px;height:6px;background:rgba(0,0,0,0.18);transform:translateX(-50%);pointer-events:none;border-radius:1px}
+.cal-value-wrap{flex-shrink:0;min-width:50px;text-align:right}
+.cal-value{display:block;font-size:16px;font-weight:750}
+.cal-default{display:none;font-size:10px;color:#8e8e93}
+#edit-view,#history-view{display:none}
+.form-row{display:flex;align-items:center;padding:10px 14px;border-bottom:1px solid #f2f2f7;min-height:56px;gap:10px}
+.form-row:last-child{border-bottom:none}
+.form-label{width:86px;flex-shrink:0;font-size:15px;font-weight:550}
+.form-control{flex:1;min-width:0}
+.name-wrap{position:relative}
+.name-input{width:100%;height:42px;border:1px solid #d1d1d6;border-radius:9px;padding:0 52px 0 10px;background:#fff}
+.name-input.error{border:2px solid #ff3b30}
+.name-count{position:absolute;right:10px;top:13px;font-size:11px;color:#8e8e93}
+.field-msg{display:none;font-size:12px;margin-top:6px;color:#b26a00}
+.field-msg.error{color:#c42020}
+.field-msg.show{display:block}
+.reps-stepper{display:flex;align-items:center;justify-content:flex-end;gap:10px;margin-left:auto}
+.step-btn{width:52px;height:52px;border-radius:26px;border:1px solid #d1d1d6;background:#fff;color:#00468B;font-size:28px;cursor:pointer}
+.reps-value{min-width:42px;text-align:center;font-size:20px;font-weight:700}
+.range-hint{font-size:11px;color:#8e8e93;margin-top:2px;text-align:right;padding-right:4px}
+.phase-sequence{display:flex;align-items:center;gap:8px;margin:12px 0 6px}
+.sequence-line{height:1px;background:#d1d1d6;flex:1}
+.sequence-label{font-size:11px;font-weight:800;letter-spacing:.55px;color:#6e6e73;text-transform:uppercase}
+.rounds-label{color:#b65d00}
+.form-error-summary{display:none;margin:0 0 10px;padding:12px 14px;background:#fff0f0;border:1px solid #ffb4b4;border-radius:10px;color:#a51f1f;font-size:13px;font-weight:600}
+.form-error-summary.show{display:block}
+.phase-row-wrap{background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.08);margin-bottom:8px}
+.phase-row{display:flex;align-items:center;padding:12px;gap:10px;transition:opacity .15s,background .15s}
+.phase-row.once-before{background:#eef6ff}
+.phase-row.once-after{background:#eefaf2}
+.phase-row.off{opacity:.48;background:#f7f7f8}
+.phase-row.error{background:#fff0f0;box-shadow:inset 0 0 0 2px #ff3b30;opacity:1}
+.phase-main{flex:1;min-width:88px}
+.phase-name{font-size:15px;font-weight:700}
+.phase-note{font-size:10px;color:#8e8e93;margin-top:2px;text-transform:uppercase;letter-spacing:.4px}
+.phase-toggle{width:46px;height:28px;border-radius:14px;border:0;background:#c7c7cc;color:#fff;font-size:10px;font-weight:800;cursor:pointer;flex-shrink:0}
+.phase-toggle.on{background:#34c759}
+.phase-time{display:flex;gap:4px;align-items:center;flex-shrink:0}
+.dur-input{width:46px;height:38px;border:1px solid #d1d1d6;border-radius:8px;text-align:center;background:#fff}
+.dur-input:disabled{background:#ececef;color:#8e8e93}
+.dur-input.error{border:2px solid #ff3b30}
+.unit{font-size:13px;color:#636366}
+.phase-error{display:none;padding:0 12px 10px;color:#c42020;font-size:12px;background:#fff0f0}
+.phase-error.show{display:block}
+.btn-row{display:flex;gap:10px;padding:16px}
+.btn-save,.btn-cancel{flex:1;padding:14px;border:0;border-radius:12px;font-size:16px;font-weight:650;cursor:pointer}
+.btn-save{background:#009A00;color:#fff}
+.btn-cancel{background:#e5e5ea;color:#1c1c1e}
+.btn-cancel.armed{background:#ff3b30;color:#fff}
+.changes-banner{display:none;background:#fff4d6;border-bottom:1px solid #f1c35b;padding:10px 14px;align-items:center;gap:10px;color:#6c4b00;font-size:12px}
+.changes-banner.show{display:flex}
+.changes-banner span{flex:1}
+.changes-banner button{border:0;border-radius:8px;background:#00468B;color:#fff;padding:8px 10px;font-weight:700;white-space:nowrap;cursor:pointer}
+.hist-hdr{display:flex;align-items:center;gap:10px;background:#00468B;padding:10px 14px;position:sticky;top:0;z-index:10}
+.hist-hdr-text{flex:1;min-width:0}
+.hist-hdr-text h1{margin:0;font-size:18px;color:#fff;font-weight:700}
+.hist-hdr-text .hdr-sub{font-size:12px;color:rgba(255,255,255,.75);margin-top:1px}
+.week-sep{font-size:11px;font-weight:700;color:#6e6e73;text-transform:uppercase;letter-spacing:.6px;padding:16px 2px 6px}
+.history-card{background:#fff;border-radius:12px;padding:14px;margin-bottom:8px;box-shadow:0 1px 3px rgba(0,0,0,.08);cursor:pointer}
+.history-card.open{box-shadow:0 2px 8px rgba(0,0,0,.14)}
+.card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.history-main{padding-right:2px;flex:1;min-width:0}
+.history-name{font-size:16px;font-weight:700;color:#1c1c1e}
+.del-btn{flex-shrink:0;width:40px;height:40px;border-radius:20px;border:0;background:#f2f2f7;color:#8e8e93;font-size:22px;cursor:pointer}
+.badge-free{display:inline-block;margin-top:5px;padding:3px 8px;border-radius:10px;background:#e8f5ed;color:#087f3e;font-size:10px;font-weight:700}
+.badge-interval{display:inline-block;margin-top:5px;padding:3px 8px;border-radius:10px;background:#e8f0fb;color:#1a56c4;font-size:10px;font-weight:700}
+.history-empty{background:#fff;border-radius:12px;padding:28px 18px;text-align:center;color:#6e6e73;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.clear{width:100%;padding:13px;border:1px solid #ff3b30;border-radius:10px;background:#fff;color:#ff3b30;font-size:15px;cursor:pointer}
+.clear.confirming{background:#ff3b30;color:#fff}
+.hist-footer{position:fixed;bottom:0;left:0;right:0;background:#f2f2f7;border-top:1px solid #e5e5ea;padding:12px 16px 28px;z-index:20}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1c1c1e;color:#fff;padding:10px 20px;border-radius:20px;opacity:0;z-index:99;pointer-events:none;transition:opacity .15s;max-width:88%;text-align:center}
+.toast.show{opacity:1}
+.history-hint{font-size:11px;color:#8e8e93;margin-top:8px}
+.phase-detail{margin-top:12px;border-top:1px solid #f2f2f7;padding-top:10px}
+.phase-detail-title{font-size:11px;font-weight:800;color:#6e6e73;text-transform:uppercase;letter-spacing:.55px;margin-bottom:7px}
+.phase-detail-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f6f6f8}
+.phase-detail-row:last-child{border-bottom:none}
+.phase-chip{width:6px;height:34px;border-radius:3px;flex-shrink:0;background:#8e8e93}
+.phase-detail-name{font-size:14px;font-weight:750;min-width:72px}
+.phase-detail-meta{font-size:12px;color:#8e8e93;margin-top:1px}
+.phase-detail-value{margin-left:auto;text-align:right;font-size:13px;font-weight:700;color:#1c1c1e;white-space:nowrap}
+.phase-detail-subvalue{font-size:11px;color:#8e8e93;margin-top:1px;font-weight:500}
+.gps-probe{margin-top:8px;padding:8px 10px;border-radius:8px;background:#f0f6ff;color:#1a3f73;font-size:12px;line-height:1.45}
+.gps-probe.bad{background:#fff0f0;color:#8a1f1f}
+.gps-probe.warn{background:#fff8e6;color:#6c4b00}
+.gps-probe b{font-weight:750}
+.tmpl-section{display:none}
+.tmpl-btn{width:100%;border-radius:12px;padding:12px 16px;font-size:15px;font-weight:650;cursor:pointer;background:#fff;color:#636366;border:1px solid #d1d1d6;margin-top:8px;display:flex;justify-content:center;align-items:center;gap:8px}
+.tmpl-row{display:flex;align-items:center;padding:11px 14px;border-bottom:1px solid #f2f2f7;gap:10px}
+.tmpl-row:last-child{border-bottom:none}
+.tmpl-info{flex:1;min-width:0}
+.tmpl-name{font-size:15px;font-weight:700}
+.tmpl-meta{font-size:12px;color:#8e8e93;margin-top:2px}
+.btn-use{padding:7px 12px;border:0;border-radius:8px;background:#00468B;color:#fff;font-size:13px;font-weight:700;cursor:pointer;flex-shrink:0}
+.load-error{display:none;margin:12px 16px;padding:12px 14px;border-radius:10px;background:#fff0f0;border:1px solid #ffb4b4;color:#a51f1f;font-size:13px}
+.load-error.show{display:block}
+.footer-ver{text-align:center;font-size:11px;color:#aeaeb2;padding:6px 0 18px}
+@media(min-width:480px){body{max-width:480px;margin:auto}}
+</style>
+</head>
+<body>
+<div id="list-view">
+  <div class="hdr"><h1>&#9201; Interval Coach</h1><div class="hdr-sub">Workout Configuration</div></div>
+  <div id="changes-banner" class="changes-banner"><span>Changes are not stored until you apply them.</span><button onclick="sendAll()">Apply &amp; Sync</button></div>
+  <div id="load-error" class="load-error">Couldn't read your data from the watch app. Close this page and open settings again. Nothing has been changed.</div>
+  <div class="section">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;padding:8px 0 4px"><div class="section-title" style="padding:0">Workouts</div><div id="wk-count" style="font-size:12px;color:#8e8e93"></div></div>
+    <div class="card" id="workout-list"></div>
+    <button id="add-workout-btn" class="btn-add" onclick="startAdd()"><span>&#xFF0B;</span> Create Workout</button>
+    <div id="tmpl-section" class="tmpl-section"><div class="card" id="tmpl-list"></div></div>
+    <button id="tmpl-toggle-btn" class="tmpl-btn" onclick="showTemplates()">&#9660; Start from template</button>
+    <div id="limit-note" class="limit-note">Eight-workout limit reached. Delete a workout to create another.</div>
+  </div>
+  <div class="section">
+    <div class="section-title">Apply changes</div>
+    <button class="btn-primary" onclick="sendAll()">&#x21BB; Apply Changes &amp; Sync to Watch</button>
+    <button class="btn-history" onclick="showHistory()">View Workout History</button>
+  </div>
+  <div class="section">
+    <div class="section-title">Settings</div>
+    <div class="settings-row"><div><span class="settings-label">3-2-1 countdown</span><span class="settings-desc">Show 3, 2, 1 before starting and when resuming from pause</span></div><input type="checkbox" id="countdown-cb"></div>
+    <div class="settings-row"><div><span class="settings-label">Phase vibration cues</span><span class="settings-desc">Vibrate before and at interval phase changes. Works during Quiet Time while a workout is running.</span></div><input type="checkbox" id="warn-cb"></div>
+    <div class="settings-row"><div><span class="settings-label">Show cadence <span class="tag">EXPERIMENTAL</span></span><span class="settings-desc">Estimated steps per minute (Free Run and intervals)</span></div><input type="checkbox" id="cad-cb"></div>
+    <div id="cad-cal-card" class="experimental-card" aria-hidden="true">
+      <div class="experimental-title">Cadence calibration</div>
+      <div class="experimental-note">Wrist step counts can be less accurate than phone or hip-worn pedometers, and Pebble may count low. To calibrate, divide your phone's step count by Pebble's (e.g. 500 &divide; 400 = 1.25x). Treat it as a signal, not gospel.</div>
+      <div class="cal-row"><div class="cal-slider-wrap"><input type="range" id="cad-mult" min="0.60" max="1.80" step="0.05" value="1.00" aria-label="Cadence multiplier"><div class="cal-scale"><span>0.60x</span><div class="cal-tick-mark" title="1.0x default"></div><span>1.80x</span></div></div><div class="cal-value-wrap"><span class="cal-value" id="cad-mult-value">1.00x</span><span class="cal-default" id="cad-default-label">default</span></div></div>
+    </div>
+    <div class="settings-row"><div><span class="settings-label">Halfway cue</span><span class="settings-desc">Single pulse at the midpoint of each phase (20s+)</span></div><input type="checkbox" id="halfway-cb"></div>
+    <div class="settings-row"><div><span class="settings-label">Watch sounds <span class="tag">TIME 2</span></span><span class="settings-desc">Phase tones and 3-2-1 pips from the Pebble Time 2 speaker. Respects the watch mute setting. Other watches ignore this.</span></div><input type="checkbox" id="sound-cb"></div>
+    <div class="settings-row"><div><span class="settings-label">GPS probe <span class="tag">EXPERIMENTAL</span></span><span class="settings-desc">Logs phone GPS while Interval Coach is open and adds a GPS quality report to each session in history. Uses some phone battery. Test build only.</span></div><input type="checkbox" id="gps-cb"></div>
+  </div>
+  <div class="footer-ver" id="footer-ver"></div>
+</div>
+
+<div id="history-view">
+  <div class="hist-hdr"><button class="hist-back icon-back" onclick="hideHistory()" aria-label="Back"><span class="icon-glyph">&#x2039;</span></button><div class="hist-hdr-text"><h1>Workout History</h1><div class="hdr-sub" id="hist-sub">Completed sessions</div></div></div>
+  <div class="section" style="padding-bottom:90px"><div id="history-content"></div></div>
+</div>
+<div id="hist-footer" style="display:none" class="hist-footer"><button id="clear-history-btn" class="clear" onclick="clearHistory()">Clear History</button></div>
+
+<div id="edit-view">
+  <div class="hdr"><div class="hdr-row"><button class="hdr-back icon-back" onclick="cancelEdit()" aria-label="Back"><span class="icon-glyph">&#x2039;</span></button><div class="hdr-text"><h1 id="edit-title">Edit Workout</h1><div class="hdr-sub">Build the session in the order it will run</div></div></div></div>
+  <div class="section">
+    <div id="form-error-summary" class="form-error-summary"></div>
+    <div class="form-card">
+      <div class="form-row"><div class="form-label">Name</div><div class="form-control"><div class="name-wrap"><input class="name-input" id="f-name" maxlength="15" autocomplete="off"><span class="name-count" id="name-count">0/15</span></div><div class="field-msg" id="name-warning"></div><div class="field-msg error" id="name-error"></div></div></div>
+      <div class="form-row"><div class="form-label">Rounds</div><div class="form-control"><div class="reps-stepper"><button type="button" class="step-btn icon-minus" onclick="changeReps(-1)" aria-label="Decrease rounds"><span class="icon-glyph">&minus;</span></button><span class="reps-value" id="reps-value">3</span><button type="button" class="step-btn icon-plus" onclick="changeReps(1)" aria-label="Increase rounds"><span class="icon-glyph">&plus;</span></button></div><div class="range-hint">1 to 20 rounds</div><input type="hidden" id="f-reps" value="3"></div></div>
+    </div>
+    <div class="section-title">Phases</div>
+    <div id="phase-fields"></div>
+    <div class="btn-row"><button id="cancel-edit-btn" class="btn-cancel" onclick="cancelEdit()">Cancel</button><button class="btn-save" onclick="safeSaveWorkout()">Save Workout</button></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+var PAGE_VERSION='2.6.1';
+var MAX_SEQUENCE=100; // Must match MAX_SEQUENCE in main.c
+var deletedIds=[],historyCleared=false,historyTotal=0;
+var workouts=[],savedHistory=[],editIdx=-1;
+var settings={warnVibrate:true,startCountdown:true,showCadence:true,halfwayCue:true,cadenceMultiplier:1.0,soundMode:1,gpsProbe:true};
+var phases=[
+  {key:'wu',label:'WARM UP',kind:'before'},
+  {key:'run',label:'RUN',kind:'repeat'},
+  {key:'jog',label:'JOG',kind:'repeat'},
+  {key:'walk',label:'WALK',kind:'repeat'},
+  {key:'rest',label:'REST',kind:'repeat'},
+  {key:'cd',label:'COOL DOWN',kind:'after'}
+];
+var phaseEnabled={},formDirty=false,pageDirty=false,closing=false,clearPending=false,dataLoaded=false;
+var pendingDelete={type:'',index:-1,timer:null};
+var cancelArmed=false,cancelTimer=null;
+
+/* ---- Return address --------------------------------------------------
+ * Pebble apps close the settings page by navigating to pebblejs://close#.
+ * Some app versions pass ?return_to=...; accept it only if it is a Pebble
+ * close URL, so this page can never send data anywhere else.
+ */
+function returnTo(){
+  var m=/[?&]return_to=([^&#]*)/.exec(location.search||'');
+  if(m){
+    var r=decodeURIComponent(m[1]);
+    if(/^pebblejs:\/\/close/.test(r))return r;
+  }
+  return 'pebblejs://close#';
+}
+
+function init(){
+  try{
+    var h=location.hash.replace(/^#/,'');
+    if(h){
+      var d=JSON.parse(decodeURIComponent(h));
+      workouts=d.workouts||[];
+      savedHistory=d.history||[];
+      historyTotal=Number(d.historyTotal)||savedHistory.length;
+      if(d.settings){for(var k in d.settings){if(d.settings.hasOwnProperty(k))settings[k]=d.settings[k];}}
+      dataLoaded=true;
+    }
+  }catch(e){}
+  if(!dataLoaded)document.getElementById('load-error').classList.add('show');
+  document.getElementById('footer-ver').textContent='Settings page v'+PAGE_VERSION;
+  document.getElementById('warn-cb').checked=settings.warnVibrate!==false;
+  document.getElementById('countdown-cb').checked=settings.startCountdown!==false;
+  document.getElementById('cad-cb').checked=settings.showCadence!==false;
+  document.getElementById('halfway-cb').checked=settings.halfwayCue!==false;
+  document.getElementById('sound-cb').checked=settings.soundMode!==0;
+  document.getElementById('gps-cb').checked=settings.gpsProbe!==false;
+  var cm=Number(settings.cadenceMultiplier);if(!cm||cm<0.6||cm>1.8)cm=1;
+  document.getElementById('cad-mult').value=cm.toFixed(2);
+  updateCadenceControls();renderTemplates();
+  renderPhaseFields();bindFormEvents();
+  ['warn-cb','countdown-cb','halfway-cb','sound-cb','gps-cb'].forEach(function(id){document.getElementById(id).addEventListener('change',markPageDirty);});
+  document.getElementById('cad-cb').addEventListener('change',function(){updateCadenceControls();markPageDirty();});
+  document.getElementById('cad-mult').addEventListener('input',function(){updateCadenceControls();markPageDirty();});
+  renderList();
+}
+function updateCadenceControls(){var cb=document.getElementById('cad-cb'),card=document.getElementById('cad-cal-card'),e=document.getElementById('cad-mult'),v=document.getElementById('cad-mult-value'),dl=document.getElementById('cad-default-label');if(!cb||!card||!e||!v)return;var n=Math.max(0.6,Math.min(1.8,Number(e.value)||1));v.textContent=n.toFixed(2)+'x';v.style.color=n>1.005?'#00468B':n<0.995?'#f09000':'#8e8e93';if(dl)dl.style.display=Math.abs(n-1.0)<0.01?'block':'none';if(cb.checked){card.classList.add('show');card.setAttribute('aria-hidden','false');}else{card.classList.remove('show');card.setAttribute('aria-hidden','true');}}
+function bindFormEvents(){
+  document.getElementById('f-name').addEventListener('input',function(){formDirty=true;updateNameMeta();clearNameError();});
+  phases.forEach(function(p){
+    document.getElementById('f-'+p.key+'-m').addEventListener('input',function(){formDirty=true;clearPhaseError(p.key);});
+    document.getElementById('f-'+p.key+'-s').addEventListener('input',function(){formDirty=true;clearPhaseError(p.key);});
+  });
+}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+function pad(n){return n<10?'0'+n:String(n);}
+function fmtD(s){s=Number(s)||0;var m=Math.floor(s/60),x=s%60;return m?(x?m+'m '+x+'s':m+'m'):x+'s';}
+function total(w){return((w.run||0)+(w.jog||0)+(w.walk||0)+(w.rest||0))*(w.reps||1)+(w.warmup||0)+(w.cooldown||0);}
+function renderList(){
+  clearPendingDelete();
+  var e=document.getElementById('workout-list'),countEl=document.getElementById('wk-count'),addBtn=document.getElementById('add-workout-btn'),note=document.getElementById('limit-note');
+  if(countEl)countEl.textContent=workouts.length+' / 8';
+  if(addBtn){addBtn.disabled=workouts.length>=8;addBtn.setAttribute('aria-disabled',workouts.length>=8?'true':'false');}
+  if(note)note.style.display=workouts.length>=8?'block':'none';
+  if(!workouts.length){e.innerHTML='<div style="padding:18px;text-align:center;color:#8e8e93">No workouts yet.</div>';return;}
+  e.innerHTML=workouts.map(function(w,i){
+    var bits=[];if(w.warmup)bits.push('WARM UP '+fmtD(w.warmup));
+    ['run','jog','walk','rest'].forEach(function(k){if(w[k])bits.push(k.toUpperCase()+' '+fmtD(w[k]));});
+    if(w.cooldown)bits.push('COOL DOWN '+fmtD(w.cooldown));
+    var accent=w.run?'#009A00':w.jog?'#00AAFF':w.walk?'#FFAA00':'#FF3300';
+    var upBtn=i>0?'<button class="btn-icon" aria-label="Move up" onclick="moveW('+i+',-1)"><span class="icon-glyph">&#x2191;</span></button>':'<span style="display:inline-block;width:36px"></span>';
+    var dnBtn=i<workouts.length-1?'<button class="btn-icon" aria-label="Move down" onclick="moveW('+i+',1)"><span class="icon-glyph">&#x2193;</span></button>':'<span style="display:inline-block;width:36px"></span>';
+    return '<div class="wk-row"><div class="wk-accent" style="background:'+accent+'"></div><div class="wk-info"><div class="wk-name">'+esc(w.name)+'</div><div class="wk-sub">'+bits.join(' &middot; ')+' &middot; '+(w.reps||1)+' rounds &middot; ~'+Math.round(total(w)/60)+' min</div></div><div class="wk-btns">'+upBtn+dnBtn+'<button class="btn-icon" aria-label="Edit" onclick="startEdit('+i+')"><span class="icon-glyph">&#x270e;</span></button><button id="workout-del-'+i+'" class="btn-icon del icon-delete" aria-label="Delete" onclick="requestDelete(\'workout\','+i+')"><span class="icon-glyph">&#x00d7;</span></button></div></div>';
+  }).join('');
+}
+function renderPhaseFields(){
+  var host=document.getElementById('phase-fields'),html='';
+  html+=sequence('Before rounds','','');html+=phaseRow(phases[0]);
+  html+=sequence('Repeated phases','rounds-label','rounds-sequence');for(var i=1;i<=4;i++)html+=phaseRow(phases[i]);
+  html+=sequence('After rounds','','');html+=phaseRow(phases[5]);
+  host.innerHTML=html;phases.forEach(function(p){phaseEnabled[p.key]=false;applyPhaseState(p.key);});updateRoundsLabels();
+}
+function sequence(label,cls,id){return '<div class="phase-sequence"><div class="sequence-line"></div><div '+(id?'id="'+id+'" ':'')+'class="sequence-label '+(cls||'')+'">'+label+'</div><div class="sequence-line"></div></div>';}
+function phaseRow(p){
+  var rowClass=p.kind==='before'?' once-before':p.kind==='after'?' once-after':'',note=p.kind==='repeat'?'Repeats each round':'Runs once';
+  return '<div class="phase-row-wrap" id="phase-wrap-'+p.key+'"><div class="phase-row'+rowClass+'" id="phase-'+p.key+'"><div class="phase-main"><div class="phase-name">'+p.label+'</div><div class="phase-note">'+note+'</div></div><button type="button" class="phase-toggle" id="toggle-'+p.key+'" onclick="togglePhase(\''+p.key+'\')">OFF</button><div class="phase-time"><input inputmode="numeric" type="number" class="dur-input" id="f-'+p.key+'-m" min="0" max="59" placeholder="0"><span class="unit">m</span><input inputmode="numeric" type="number" class="dur-input" id="f-'+p.key+'-s" min="0" max="59" placeholder="0"><span class="unit">s</span></div></div><div class="phase-error" id="phase-error-'+p.key+'"></div></div>';
+}
+function togglePhase(k){phaseEnabled[k]=!phaseEnabled[k];applyPhaseState(k);clearPhaseError(k);clearFormSummary();formDirty=true;}
+function applyPhaseState(k){var on=!!phaseEnabled[k],row=document.getElementById('phase-'+k),btn=document.getElementById('toggle-'+k),m=document.getElementById('f-'+k+'-m'),s=document.getElementById('f-'+k+'-s');if(row){if(on)row.classList.remove('off');else row.classList.add('off');}if(btn){btn.textContent=on?'ON':'OFF';if(on)btn.classList.add('on');else btn.classList.remove('on');btn.setAttribute('aria-pressed',on?'true':'false');}if(m)m.disabled=!on;if(s)s.disabled=!on;}
+function iv(id){return parseInt(document.getElementById(id).value,10)||0;}
+function setD(k,s){s=Number(s)||0;document.getElementById('f-'+k+'-m').value=s?Math.floor(s/60):'';document.getElementById('f-'+k+'-s').value=s?s%60:'';phaseEnabled[k]=s>0;applyPhaseState(k);clearPhaseError(k);}
+function getD(k){return phaseEnabled[k]?(iv('f-'+k+'-m')*60+iv('f-'+k+'-s')):0;}
+function getReps(){return Math.max(1,Math.min(20,iv('f-reps')||1));}
+function setReps(v){v=Math.max(1,Math.min(20,Number(v)||1));document.getElementById('f-reps').value=v;document.getElementById('reps-value').textContent=v;updateRoundsLabels();}
+function changeReps(delta){setReps(getReps()+delta);formDirty=true;}
+function updateRoundsLabels(){var e=document.getElementById('rounds-sequence');if(e)e.textContent='Repeated phases x '+getReps();var v=document.getElementById('reps-value');if(v)v.textContent=getReps();}
+function updateNameMeta(){var input=document.getElementById('f-name'),value=input.value||'';document.getElementById('name-count').textContent=value.length+'/15';var duplicate=false,lower=value.trim().toLowerCase();if(lower){workouts.forEach(function(w,i){if(i!==editIdx&&String(w.name||'').toLowerCase()===lower)duplicate=true;});}var msg=document.getElementById('name-warning');msg.textContent=duplicate?'Another workout already uses this name. You can save it, but it may be hard to tell them apart.':'';if(duplicate)msg.classList.add('show');else msg.classList.remove('show');}
+function showEdit(){resetCancelArm();clearAllErrors();document.getElementById('list-view').style.display='none';document.getElementById('history-view').style.display='none';document.getElementById('edit-view').style.display='block';scrollTo(0,0);}
+function startAdd(){if(workouts.length>=8){toast('Eight-workout limit reached. Delete one first.');return;}editIdx=-1;formDirty=false;document.getElementById('edit-title').textContent='New Workout';document.getElementById('f-name').value='';setReps(3);phases.forEach(function(p){setD(p.key,0);});updateNameMeta();showEdit();}
+function startEdit(i){editIdx=i;formDirty=false;var w=workouts[i];document.getElementById('edit-title').textContent='Edit Workout';document.getElementById('f-name').value=w.name;setReps(w.reps||1);setD('run',w.run);setD('jog',w.jog);setD('walk',w.walk);setD('rest',w.rest);setD('wu',w.warmup);setD('cd',w.cooldown);updateNameMeta();showEdit();}
+function cancelEdit(){if(!formDirty){leaveEdit();return;}if(!cancelArmed){cancelArmed=true;var b=document.getElementById('cancel-edit-btn');if(b){b.textContent='Tap again to discard';b.classList.add('armed');}toast('Tap Cancel again to discard changes');cancelTimer=setTimeout(resetCancelArm,3000);return;}leaveEdit();}
+function leaveEdit(){resetCancelArm();formDirty=false;document.getElementById('edit-view').style.display='none';document.getElementById('list-view').style.display='block';scrollTo(0,0);}
+function resetCancelArm(){cancelArmed=false;if(cancelTimer){clearTimeout(cancelTimer);cancelTimer=null;}var b=document.getElementById('cancel-edit-btn');if(b){b.textContent='Cancel';b.classList.remove('armed');}}
+function clearNameError(){var input=document.getElementById('f-name'),msg=document.getElementById('name-error');if(input)input.classList.remove('error');if(msg){msg.textContent='';msg.classList.remove('show');}}
+function showNameError(text){var input=document.getElementById('f-name'),msg=document.getElementById('name-error');input.classList.add('error');msg.textContent=text;msg.classList.add('show');}
+function clearPhaseError(k){var row=document.getElementById('phase-'+k),m=document.getElementById('f-'+k+'-m'),s=document.getElementById('f-'+k+'-s'),msg=document.getElementById('phase-error-'+k);if(row)row.classList.remove('error');if(m)m.classList.remove('error');if(s)s.classList.remove('error');if(msg){msg.textContent='';msg.classList.remove('show');}}
+function showPhaseError(k,text){var row=document.getElementById('phase-'+k),m=document.getElementById('f-'+k+'-m'),s=document.getElementById('f-'+k+'-s'),msg=document.getElementById('phase-error-'+k);row.classList.add('error');m.classList.add('error');s.classList.add('error');msg.textContent=text;msg.classList.add('show');}
+function clearFormSummary(){var s=document.getElementById('form-error-summary');if(s){s.textContent='';s.classList.remove('show');}}
+function showFormSummary(text){var s=document.getElementById('form-error-summary');s.textContent=text;s.classList.add('show');}
+function clearAllErrors(){clearNameError();clearFormSummary();phases.forEach(function(p){clearPhaseError(p.key);});}
+function sequenceCount(w){
+  var reps=Math.max(1,Number(w.reps)||1),count=0;
+  if((Number(w.warmup)||0)>0)count++;
+  ['run','jog','walk','rest'].forEach(function(k){if((Number(w[k])||0)>0)count+=reps;});
+  if((Number(w.cooldown)||0)>0)count++;
+  return count;
+}
+function validateSequenceCapacity(w){return sequenceCount(w)<=MAX_SEQUENCE;}
+function validateWorkout(){
+  clearAllErrors();var errors=0,first=null,n=document.getElementById('f-name').value.trim();
+  if(!n){showNameError('Enter a workout name.');errors++;first=document.getElementById('f-name');}
+  var repeatActive=false;['run','jog','walk','rest'].forEach(function(k){if(phaseEnabled[k]&&getD(k)>0)repeatActive=true;});
+  phases.forEach(function(p){if(phaseEnabled[p.key]&&getD(p.key)<=0){showPhaseError(p.key,'Enter minutes or seconds, or turn this phase off.');errors++;if(!first)first=document.getElementById('phase-wrap-'+p.key);}});
+  if(!repeatActive){showFormSummary('Add at least one repeated phase: Run, Jog, Walk or Rest. Warm Up and Cool Down cannot be used alone.');errors++;if(!first)first=document.getElementById('form-error-summary');}
+  var candidate={reps:getReps(),run:getD('run'),jog:getD('jog'),walk:getD('walk'),rest:getD('rest'),warmup:getD('wu'),cooldown:getD('cd')};
+  if(!validateSequenceCapacity(candidate)){showFormSummary('This workout has '+sequenceCount(candidate)+' phases. Reduce rounds or active repeated phases so it stays within the 100-step watch limit.');errors++;if(!first)first=document.getElementById('form-error-summary');}
+  if(errors){if(errors>1)showFormSummary(errors+' items need attention. Add a repeated phase and complete every enabled duration.');var summary=document.getElementById('form-error-summary');if(!summary.classList.contains('show'))showFormSummary('Fix the highlighted item before saving.');if(first&&first.scrollIntoView)first.scrollIntoView({block:'center'});if(first&&first.focus)first.focus();return false;}
+  return true;
+}
+function saveWorkout(){if(!validateWorkout())return;var n=document.getElementById('f-name').value.trim().substring(0,15),r=getReps(),w={name:n,reps:r,run:getD('run'),jog:getD('jog'),walk:getD('walk'),rest:getD('rest'),warmup:getD('wu'),cooldown:getD('cd')};if(editIdx<0){if(workouts.length>=8){showFormSummary('Eight-workout limit reached. Delete one before creating another.');return;}workouts.push(w);}else{workouts[editIdx]=w;}formDirty=false;markPageDirty();document.getElementById('edit-view').style.display='none';document.getElementById('list-view').style.display='block';renderList();scrollTo(0,0);toast('Workout saved here. Apply changes to keep it.');}
+function safeSaveWorkout(){try{saveWorkout();}catch(e){console.log('[IC] save workout failed: '+String(e&&e.stack?e.stack:e));showFormSummary('The workout could not be saved. Close settings and try again.');toast('Could not save workout');}}
+function requestDelete(type,index){var same=pendingDelete.type===type&&pendingDelete.index===index;if(same){performDelete(type,index);return;}clearPendingDelete();pendingDelete.type=type;pendingDelete.index=index;var id=type==='workout'?'workout-del-'+index:'session-del-'+index,btn=document.getElementById(id);if(btn){btn.classList.add('armed');btn.innerHTML='<span class="icon-glyph">&#x2713;</span>';btn.setAttribute('aria-label','Tap again to confirm delete');}var label=type==='workout'&&workouts[index]?workouts[index].name:'this session';toast('Tap again to delete '+label);pendingDelete.timer=setTimeout(clearPendingDelete,3000);}
+function clearPendingDelete(){if(pendingDelete.timer)clearTimeout(pendingDelete.timer);pendingDelete={type:'',index:-1,timer:null};var armed=document.querySelectorAll('.armed');for(var i=0;i<armed.length;i++){if(armed[i].classList.contains('btn-icon')||armed[i].classList.contains('del-btn')){armed[i].classList.remove('armed');armed[i].innerHTML='<span class="icon-glyph">&#x00d7;</span>';}}}
+function performDelete(type,index){clearPendingDelete();if(type==='workout'){if(index<0||index>=workouts.length)return;workouts.splice(index,1);renderList();markPageDirty();toast('Workout deleted. Apply changes to keep it.');}else{if(index<0||index>=savedHistory.length)return;if(savedHistory[index].id)deletedIds.push(savedHistory[index].id);savedHistory.splice(index,1);renderHistory();markPageDirty();toast('Session removed. Apply changes to keep it.');}}
+function moveW(i,dir){var j=i+dir;if(j<0||j>=workouts.length)return;var tmp=workouts[i];workouts[i]=workouts[j];workouts[j]=tmp;renderList();markPageDirty();}
+function markPageDirty(){pageDirty=true;var b=document.getElementById('changes-banner');if(b)b.classList.add('show');}
+function getWeekLabel(ts){var d=new Date((Number(ts)||0)*1000),now=new Date(),sow=new Date(now);sow.setHours(0,0,0,0);sow.setDate(now.getDate()-now.getDay());var slw=new Date(sow);slw.setDate(sow.getDate()-7);if(d>=sow)return 'This week';if(d>=slw)return 'Last week';var ws=new Date(d);ws.setDate(d.getDate()-d.getDay());var mn=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];return 'Week of '+ws.getDate()+' '+mn[ws.getMonth()]+' '+ws.getFullYear();}
+function hDur(s){s=Number(s)||0;if(s<60)return s+'s';var h=Math.floor(s/3600),m=Math.floor((s%3600)/60),x=s%60;return h?h+':'+pad(m)+':'+pad(x):pad(m)+':'+pad(x);}
+function hDate(v){var d=new Date((Number(v)||0)*1000);return d.toLocaleDateString()+' '+pad(d.getHours())+':'+pad(d.getMinutes());}
+function phaseColour(t){var c=['#b8b8bd','#009A00','#00AAFF','#FFAA00','#ff3b30','#44c7f4'];return c[Number(t)||0]||'#8e8e93';}
+function histPhaseLabel(t){var l=['WARM UP','RUN','JOG','WALK','REST','COOL DOWN'];return l[Number(t)||0]||'PHASE';}
+function phaseCadenceText(ph){var spm=Number(ph.cadence)||0;if(spm>=50)return '~'+spm+' SPM avg';if((Number(ph.steps)||0)>0)return '<50 SPM est.';return 'No cadence';}
+function fmtPace(secPerKm){var m=Math.floor(secPerKm/60),x=Math.round(secPerKm%60);if(x===60){m++;x=0;}return m+':'+pad(x)+' /km';}
+function phaseExtraLines(ph){var out='',d=Number(ph.distance)||0,dur=Number(ph.duration)||0;if(ph.avgHr>0)out+='<div class="phase-detail-subvalue">HR '+ph.avgHr+' avg'+(ph.maxHr>0?' &middot; '+ph.maxHr+' max':'')+'</div>';if(d>=100&&dur>0){var pace=dur*1000/d;if(pace>=120&&pace<=1200)out+='<div class="phase-detail-subvalue">~'+fmtPace(pace)+' est.</div>';}return out;}
+function renderPhaseDetail(x){var ph=x.phases||[];if(!ph.length)return '<div class="phase-detail"><div class="phase-detail-title">Phase breakdown</div><div class="meta">No phase-level data was saved for this session.</div></div>';var html='<div class="phase-detail"><div class="phase-detail-title">Phase breakdown</div>';ph.forEach(function(p){var count=Number(p.count)||0,dur=Number(p.duration)||0,steps=Number(p.steps)||0,label=p.label||histPhaseLabel(p.type);var perRound=count>1?Math.round(dur/count):dur;var meta=count>1?(count+' rounds &middot; '+hDur(perRound)+' avg'):hDur(dur);var extra=phaseExtraLines(p)+(p.maxCadence>=50?'<div class="phase-detail-subvalue">peak ~'+p.maxCadence+' SPM</div>':'');html+='<div class="phase-detail-row"><div class="phase-chip" style="background:'+phaseColour(p.type)+'"></div><div><div class="phase-detail-name">'+esc(label)+'</div><div class="phase-detail-meta">'+meta+'</div></div><div class="phase-detail-value">'+esc(phaseCadenceText(p))+extra+'<div class="phase-detail-subvalue">'+esc(steps)+' steps</div></div></div>';});html+='</div>';return html;}
+
+/* GPS probe report (v2.6.1). Verdict thresholds:
+ *   good : max gap <= 15 s and coverage >= 90 %
+ *   patchy: some fixes but gaps or coverage below that
+ *   none : no fixes during the session
+ */
+function gpsVerdict(g){if(!g||!g.fixes)return 'none';if(g.maxGap<=15&&g.coverage>=90)return 'good';return 'patchy';}
+function renderGpsProbe(x,full){
+  var g=x.gps;if(!g)return '';
+  var v=gpsVerdict(g),cls=v==='good'?'gps-probe':v==='patchy'?'gps-probe warn':'gps-probe bad';
+  var head=v==='good'?'GPS probe: steady':v==='patchy'?'GPS probe: patchy':'GPS probe: no fixes';
+  if(!full)return '<div class="'+cls+'"><b>'+head+'</b>'+(g.fixes?' &middot; '+g.fixes+' fixes &middot; max gap '+g.maxGap+'s':'')+'</div>';
+  var lines=['<b>'+head+'</b>'];
+  if(g.fixes){
+    lines.push(g.fixes+' fixes &middot; one every ~'+g.avgInterval+'s &middot; longest gap '+g.maxGap+'s');
+    lines.push('Coverage '+g.coverage+'% &middot; accuracy &plusmn;'+g.medianAcc+' m (median)');
+    if(g.distM>0)lines.push('GPS distance '+(g.distM/1000).toFixed(2)+' km'+(x.distance>0?' vs Pebble Health ~'+(x.distance/1000).toFixed(2)+' km':''));
+    if(g.altSpan!=null)lines.push('GPS altitude range '+g.altSpan+' m (raw, noisy)');
+  }else{
+    lines.push('No GPS fixes arrived while this session ran.');
+  }
+  if(g.errors)lines.push(g.errors+' GPS error'+(g.errors===1?'':'s')+(g.lastError?' (last: '+esc(g.lastError)+')':''));
+  if(g.offsetH)lines.push('Matched with a '+g.offsetH+' h clock offset');
+  return '<div class="'+cls+'">'+lines.join('<br>')+'</div>';
+}
+function toggleHistoryDetail(i){if(!savedHistory[i])return;savedHistory[i]._open=!savedHistory[i]._open;renderHistory();}
+function renderHistory(){
+  clearPendingDelete();
+  var sub=document.getElementById('hist-sub');if(sub)sub.textContent=historyTotal>savedHistory.length+deletedIds.length?'Latest '+savedHistory.length+' of '+historyTotal+' sessions':'Completed sessions';
+  var e=document.getElementById('history-content');
+  if(!savedHistory||!savedHistory.length){e.innerHTML='<div class="history-empty"><strong>No sessions yet</strong><div class="meta">Complete a workout to add it here.</div></div>';return;}
+  var html='',lastWeek='';
+  savedHistory.forEach(function(x,i){
+    var wk=getWeekLabel(x.date||0);if(wk!==lastWeek){html+='<div class="week-sep">'+esc(wk)+'</div>';lastWeek=wk;}
+    var isFree=x.type==='FREE RUN',bc=isFree?'badge-free':'badge-interval',dist=Number(x.distance)||0;
+    var distText=dist>0?(dist>=1000?'~'+(dist/1000).toFixed(2)+' km':'~'+dist+' m'):'';
+    var sl=(x.steps>0||distText)?'<div class="meta">'+(x.steps>0?esc(x.steps)+' steps':'')+(x.steps>0&&distText?' &middot; ':'')+esc(distText)+(x.cadence?' &middot; ~'+esc(x.cadence)+' SPM avg':'')+'</div>':'';
+    var hrl=x.avgHr>0?'<div class="meta">HR '+x.avgHr+' avg'+(x.maxHr>0?' &middot; '+x.maxHr+' max':'')+'</div>':'';
+    html+='<div class="history-card '+(x._open?'open':'')+'" onclick="toggleHistoryDetail('+i+')"><div class="card-top"><div class="history-main"><div class="history-name">'+esc(x.name)+'</div><div class="'+bc+'">'+esc(x.type)+'</div></div><button id="session-del-'+i+'" class="del-btn icon-delete" onclick="event.stopPropagation();requestDelete(\'session\','+i+')" aria-label="Delete session"><span class="icon-glyph">&#x00d7;</span></button></div><div class="meta">'+esc(hDate(x.date))+' &middot; '+esc(hDur(x.duration))+(x.pausedS>=5?' active &middot; +'+esc(hDur(x.pausedS))+' paused':'')+'</div>'+sl+hrl+renderGpsProbe(x,!!x._open)+'<div class="history-hint">'+(x._open?'Tap to collapse':'Tap for phase breakdown')+'</div>'+(x._open?renderPhaseDetail(x):'')+'</div>';
+  });
+  e.innerHTML=html;
+}
+function showHistory(){clearPendingDelete();document.getElementById('list-view').style.display='none';document.getElementById('edit-view').style.display='none';document.getElementById('history-view').style.display='block';document.getElementById('hist-footer').style.display='block';renderHistory();scrollTo(0,0);}
+function hideHistory(){clearPendingDelete();document.getElementById('history-view').style.display='none';document.getElementById('hist-footer').style.display='none';document.getElementById('list-view').style.display='block';scrollTo(0,0);}
+function clearHistory(){var btn=document.getElementById('clear-history-btn');if(!clearPending){clearPending=true;btn.textContent='Tap again to confirm';btn.classList.add('confirming');setTimeout(function(){if(clearPending){clearPending=false;btn.textContent='Clear History';btn.classList.remove('confirming');}},3000);return;}clearPending=false;btn.textContent='Clear History';btn.classList.remove('confirming');savedHistory=[];historyCleared=true;deletedIds=[];renderHistory();markPageDirty();toast('History cleared. Apply changes to keep it.');}
+function collect(){
+  settings.warnVibrate=document.getElementById('warn-cb').checked;
+  settings.startCountdown=document.getElementById('countdown-cb').checked;
+  settings.showCadence=document.getElementById('cad-cb').checked;
+  settings.halfwayCue=document.getElementById('halfway-cb').checked;
+  settings.soundMode=document.getElementById('sound-cb').checked?1:0;
+  settings.gpsProbe=document.getElementById('gps-cb').checked;
+  settings.cadenceMultiplier=Math.max(0.6,Math.min(1.8,Number(document.getElementById('cad-mult').value)||1));
+  return{v:PAGE_VERSION,workouts:workouts,deletedIds:historyCleared?[]:deletedIds,clearHistory:historyCleared,settings:settings,send:true};
+}
+function sendAll(){
+  if(!dataLoaded){toast('Settings did not load. Close and reopen to avoid overwriting your workouts.');return;}
+  if(formDirty){showFormSummary('Save or cancel the workout you are editing first.');toast('Finish editing before applying changes');return;}
+  closing=true;location.href=returnTo()+encodeURIComponent(JSON.stringify(collect()));
+}
+function toast(m){var t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(function(){t.classList.remove('show');},2500);}
+var TEMPLATES=[{name:'Tabata',reps:8,warmup:0,run:20,jog:0,walk:0,rest:10,cooldown:0,desc:'8\u00d7 20s run / 10s rest'},{name:'C25K Wk 1',reps:8,warmup:0,run:0,jog:60,walk:90,rest:0,cooldown:0,desc:'8\u00d7 60s jog / 90s walk'},{name:'Strides',reps:6,warmup:0,run:20,jog:0,walk:60,rest:0,cooldown:0,desc:'6\u00d7 20s run / 60s walk'},{name:'5K Intervals',reps:5,warmup:0,run:180,jog:90,walk:0,rest:0,cooldown:0,desc:'5\u00d7 3min run / 90s jog'},{name:'HIIT 30/20',reps:10,warmup:0,run:30,jog:0,walk:0,rest:20,cooldown:0,desc:'10\u00d7 30s run / 20s rest'},{name:'Easy Fartlek',reps:10,warmup:0,run:0,jog:30,walk:30,rest:0,cooldown:0,desc:'10\u00d7 30s jog / 30s walk'},{name:'Recovery Run',reps:20,warmup:0,run:0,jog:60,walk:30,rest:0,cooldown:0,desc:'20\u00d7 60s jog / 30s walk'}];
+function showTemplates(){var s=document.getElementById('tmpl-section');if(!s)return;var open=s.style.display==='block';s.style.display=open?'none':'block';var btn=document.getElementById('tmpl-toggle-btn');if(btn)btn.textContent=open?'\u25bc Start from template':'\u25b2 Hide templates';}
+function loadTemplate(i){var t=TEMPLATES[i];if(!t)return;if(workouts.length>=8){toast('Eight-workout limit reached. Delete one first.');return;}editIdx=-1;formDirty=true;document.getElementById('edit-title').textContent='New from Template';document.getElementById('f-name').value=t.name.substring(0,15);setReps(t.reps||3);setD('run',t.run||0);setD('jog',t.jog||0);setD('walk',t.walk||0);setD('rest',t.rest||0);setD('wu',t.warmup||0);setD('cd',t.cooldown||0);updateNameMeta();showEdit();}
+function renderTemplates(){var e=document.getElementById('tmpl-list');if(!e)return;e.innerHTML=TEMPLATES.map(function(t,i){var a=t.run?'#009A00':t.jog?'#00AAFF':t.walk?'#FFAA00':'#FF3300';return '<div class="tmpl-row"><div style="width:5px;height:36px;border-radius:3px;background:'+a+';flex-shrink:0"></div><div class="tmpl-info"><div class="tmpl-name">'+esc(t.name)+'</div><div class="tmpl-meta">'+esc(t.desc)+'</div></div><button class="btn-use" data-idx="'+i+'">Use</button></div>';}).join('');var btns=e.querySelectorAll('.btn-use');for(var j=0;j<btns.length;j++){btns[j].addEventListener('click',function(){loadTemplate(+this.getAttribute('data-idx'));});}}
+window.addEventListener('load',init);
+</script>
+</body>
+</html>
