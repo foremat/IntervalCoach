@@ -146,6 +146,8 @@ input[type=checkbox]{width:22px;height:22px;flex-shrink:0}
 .gps-probe.bad{background:#fff0f0;color:#8a1f1f}
 .gps-probe.warn{background:#fff8e6;color:#6c4b00}
 .gps-probe b{font-weight:750}
+.gps-map{font-family:Menlo,Consolas,monospace;font-size:11px;letter-spacing:1px;word-break:break-all;margin-top:4px}
+.gps-diag{margin-top:4px;font-style:italic}
 .tmpl-section{display:none}
 .tmpl-btn{width:100%;border-radius:12px;padding:12px 16px;font-size:15px;font-weight:650;cursor:pointer;background:#fff;color:#636366;border:1px solid #d1d1d6;margin-top:8px;display:flex;justify-content:center;align-items:center;gap:8px}
 .tmpl-row{display:flex;align-items:center;padding:11px 14px;border-bottom:1px solid #f2f2f7;gap:10px}
@@ -217,7 +219,7 @@ input[type=checkbox]{width:22px;height:22px;flex-shrink:0}
 <div class="toast" id="toast"></div>
 
 <script>
-var PAGE_VERSION='2.6.1';
+var PAGE_VERSION='2.6.2';
 var MAX_SEQUENCE=100; // Must match MAX_SEQUENCE in main.c
 var deletedIds=[],historyCleared=false,historyTotal=0;
 var workouts=[],savedHistory=[],editIdx=-1;
@@ -377,17 +379,31 @@ function fmtPace(secPerKm){var m=Math.floor(secPerKm/60),x=Math.round(secPerKm%6
 function phaseExtraLines(ph){var out='',d=Number(ph.distance)||0,dur=Number(ph.duration)||0;if(ph.avgHr>0)out+='<div class="phase-detail-subvalue">HR '+ph.avgHr+' avg'+(ph.maxHr>0?' &middot; '+ph.maxHr+' max':'')+'</div>';if(d>=100&&dur>0){var pace=dur*1000/d;if(pace>=120&&pace<=1200)out+='<div class="phase-detail-subvalue">~'+fmtPace(pace)+' est.</div>';}return out;}
 function renderPhaseDetail(x){var ph=x.phases||[];if(!ph.length)return '<div class="phase-detail"><div class="phase-detail-title">Phase breakdown</div><div class="meta">No phase-level data was saved for this session.</div></div>';var html='<div class="phase-detail"><div class="phase-detail-title">Phase breakdown</div>';ph.forEach(function(p){var count=Number(p.count)||0,dur=Number(p.duration)||0,steps=Number(p.steps)||0,label=p.label||histPhaseLabel(p.type);var perRound=count>1?Math.round(dur/count):dur;var meta=count>1?(count+' rounds &middot; '+hDur(perRound)+' avg'):hDur(dur);var extra=phaseExtraLines(p)+(p.maxCadence>=50?'<div class="phase-detail-subvalue">peak ~'+p.maxCadence+' SPM</div>':'');html+='<div class="phase-detail-row"><div class="phase-chip" style="background:'+phaseColour(p.type)+'"></div><div><div class="phase-detail-name">'+esc(label)+'</div><div class="phase-detail-meta">'+meta+'</div></div><div class="phase-detail-value">'+esc(phaseCadenceText(p))+extra+'<div class="phase-detail-subvalue">'+esc(steps)+' steps</div></div></div>';});html+='</div>';return html;}
 
-/* GPS probe report (v2.6.1). Verdict thresholds:
- *   good : max gap <= 15 s and coverage >= 90 %
- *   patchy: some fixes but gaps or coverage below that
- *   none : no fixes during the session
+/* GPS probe report (v2.6.2). Verdict thresholds:
+ *   steady  : max gap <= 15 s and coverage >= 90 %
+ *   patchy  : coverage 30-89 % or gaps above 15 s
+ *   unusable: coverage under 30 %
+ *   none    : no fixes during the session
+ * v2.6.2 reports (g.v === 2) add heartbeat diagnostics from the watch.
  */
-function gpsVerdict(g){if(!g||!g.fixes)return 'none';if(g.maxGap<=15&&g.coverage>=90)return 'good';return 'patchy';}
+function gpsVerdict(g){if(!g||!g.fixes)return 'none';if(g.maxGap<=15&&g.coverage>=90)return 'good';if(g.coverage<30)return 'unusable';return 'patchy';}
+function fmtMin(s){s=Number(s)||0;return s<60?s+'s':Math.round(s/60)+' min';}
+/* One-line reading of the heartbeat numbers. Says what the evidence points
+ * to, not what it proves. */
+function gpsDiagnosis(g){
+  if(g.v!==2)return '';
+  if(!g.hbCount)return 'No heartbeats reached the phone. Check the watch app is v2.6.2.';
+  var awake=Number(g.awakePct)||0,cov=Number(g.coverage)||0;
+  if(awake>=80&&cov>=80)return 'Phone stayed awake and GPS kept up.';
+  if(awake>=80)return 'Phone stayed awake but GPS fixes were sparse. Points to iOS location delivery, not a sleeping app.';
+  if(awake<50)return 'Phone app was asleep for much of the run. Heartbeats did not keep it awake.';
+  return 'Phone app was awake some of the time. Compare the minute map with when the phone locked.';
+}
 function renderGpsProbe(x,full){
   var g=x.gps;if(!g)return '';
   var v=gpsVerdict(g),cls=v==='good'?'gps-probe':v==='patchy'?'gps-probe warn':'gps-probe bad';
-  var head=v==='good'?'GPS probe: steady':v==='patchy'?'GPS probe: patchy':'GPS probe: no fixes';
-  if(!full)return '<div class="'+cls+'"><b>'+head+'</b>'+(g.fixes?' &middot; '+g.fixes+' fixes &middot; max gap '+g.maxGap+'s':'')+'</div>';
+  var head={good:'GPS probe: steady',patchy:'GPS probe: patchy',unusable:'GPS probe: unusable',none:'GPS probe: no fixes'}[v];
+  if(!full)return '<div class="'+cls+'"><b>'+head+'</b>'+(g.fixes?' &middot; coverage '+g.coverage+'%':'')+(g.v===2&&g.awakePct!=null?' &middot; phone awake '+g.awakePct+'%':'')+'</div>';
   var lines=['<b>'+head+'</b>'];
   if(g.fixes){
     lines.push(g.fixes+' fixes &middot; one every ~'+g.avgInterval+'s &middot; longest gap '+g.maxGap+'s');
@@ -397,9 +413,19 @@ function renderGpsProbe(x,full){
   }else{
     lines.push('No GPS fixes arrived while this session ran.');
   }
+  if(g.v===2){
+    if(g.awakePct!=null)lines.push('Phone awake '+g.awakePct+'% (heartbeats received)');
+    if(g.hbOk!=null){var tot=(Number(g.hbOk)||0)+(Number(g.hbFail)||0);if(tot)lines.push('Watch heartbeat delivery '+Math.round(g.hbOk*100/tot)+'% ('+g.hbOk+' of '+tot+')');}
+    if(g.fixes)lines.push('Fix delay ~'+(Number(g.lagMed)||0)+'s (median)');
+    if(g.probeLateS>60)lines.push('GPS probe started '+fmtMin(g.probeLateS)+' after GO');
+    if(g.jsRestartS>0)lines.push('Phone app restarted '+fmtMin(g.jsRestartS)+' into the session');
+  }
   if(g.errors)lines.push(g.errors+' GPS error'+(g.errors===1?'':'s')+(g.lastError?' (last: '+esc(g.lastError)+')':''));
   if(g.offsetH)lines.push('Matched with a '+g.offsetH+' h clock offset');
-  return '<div class="'+cls+'">'+lines.join('<br>')+'</div>';
+  var html=lines.join('<br>');
+  if(g.v===2&&g.minuteMap)html+='<div class="gps-map" aria-label="Per-minute GPS map">'+esc(g.minuteMap)+'</div><div class="meta">Per minute: # GPS fix &middot; - phone awake, no fix &middot; . neither</div>';
+  var dx=gpsDiagnosis(g);if(dx)html+='<div class="gps-diag">'+esc(dx)+'</div>';
+  return '<div class="'+cls+'">'+html+'</div>';
 }
 function toggleHistoryDetail(i){if(!savedHistory[i])return;savedHistory[i]._open=!savedHistory[i]._open;renderHistory();}
 function renderHistory(){
