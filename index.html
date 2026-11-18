@@ -142,18 +142,17 @@ input[type=checkbox]{width:22px;height:22px;flex-shrink:0}
 .phase-detail-meta{font-size:12px;color:#8e8e93;margin-top:1px}
 .phase-detail-value{margin-left:auto;text-align:right;font-size:13px;font-weight:700;color:#1c1c1e;white-space:nowrap}
 .phase-detail-subvalue{font-size:11px;color:#8e8e93;margin-top:1px;font-weight:500}
-.gps-probe{margin-top:8px;padding:8px 10px;border-radius:8px;background:#f0f6ff;color:#1a3f73;font-size:12px;line-height:1.45}
-.gps-probe.bad{background:#fff0f0;color:#8a1f1f}
-.gps-probe.warn{background:#fff8e6;color:#6c4b00}
-.gps-probe b{font-weight:750}
-.gps-map{font-family:Menlo,Consolas,monospace;font-size:11px;letter-spacing:0;word-break:break-all;overflow-wrap:anywhere;white-space:normal;max-width:100%;margin-top:4px}
+.gps-note{margin-top:6px;font-size:12px;color:#8e8e93;line-height:1.4}
+.gps-chip{display:inline-block;margin-left:4px;padding:1px 5px;border-radius:6px;background:#e8f5ed;color:#087f3e;font-size:10px;font-weight:700;vertical-align:1px}
+.gps-details{margin-top:8px;padding:8px 10px;border-radius:8px;background:#f2f2f7;color:#3a3a3c;font-size:12px;line-height:1.5}
+.gps-details b{font-weight:700}
 .recovered{margin-top:8px;padding:8px 10px;border-radius:8px;background:#fff8e6;color:#6c4b00;font-size:12px;line-height:1.45}
-.gps-diag{margin-top:4px;font-style:italic}
-.gps-label{margin-top:4px;font-size:12px;opacity:.85}
-.lab-card{background:#fff;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.08);margin-bottom:8px;padding:12px 16px}
-.lab-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:6px 0}
-.lab-row select,.lab-row input[type=text]{font-size:15px;padding:6px 8px;border:1px solid #d1d1d6;border-radius:8px;background:#fff;max-width:60%}
-.lab-row input[type=text]{flex:1}
+.pace-chart{margin-top:12px;border-top:1px solid #f2f2f7;padding-top:10px}
+.pace-row{display:flex;align-items:center;gap:8px;margin:4px 0;font-size:12px}
+.pace-lbl{width:46px;color:#6e6e73;flex-shrink:0}
+.pace-track{flex:1;height:14px;background:#f2f2f7;border-radius:7px;overflow:hidden}
+.pace-bar{height:100%;border-radius:7px}
+.pace-val{width:62px;text-align:right;font-weight:700;flex-shrink:0;font-variant-numeric:tabular-nums}
 .tmpl-section{display:none}
 .tmpl-btn{width:100%;border-radius:12px;padding:12px 16px;font-size:15px;font-weight:650;cursor:pointer;background:#fff;color:#636366;border:1px solid #d1d1d6;margin-top:8px;display:flex;justify-content:center;align-items:center;gap:8px}
 .tmpl-row{display:flex;align-items:center;padding:11px 14px;border-bottom:1px solid #f2f2f7;gap:10px}
@@ -198,16 +197,8 @@ input[type=checkbox]{width:22px;height:22px;flex-shrink:0}
     </div>
     <div class="settings-row"><div><span class="settings-label">Halfway cue</span><span class="settings-desc">Single pulse at the midpoint of each phase (20s+)</span></div><input type="checkbox" id="halfway-cb"></div>
     <div class="settings-row"><div><span class="settings-label">Watch sounds <span class="tag">TIME 2</span></span><span class="settings-desc">Phase tones and 3-2-1 pips from the Pebble Time 2 speaker. Respects the watch mute setting. Other watches ignore this.</span></div><input type="checkbox" id="sound-cb"></div>
-    <div class="settings-row"><div><span class="settings-label">GPS probe <span class="tag">EXPERIMENTAL</span></span><span class="settings-desc">Logs phone GPS while Interval Coach is open and adds a GPS quality report to each session in history. Uses some phone battery. Test build only.</span></div><input type="checkbox" id="gps-cb"></div>
-    <div class="lab-card" id="gps-lab">
-      <div class="settings-label">GPS test setup <span class="tag">TEST</span></div>
-      <div class="settings-desc">Attached to every session until you change it, so test runs can be told apart.</div>
-      <div class="lab-row"><span>Heartbeat interval</span><select id="hb-int"><option value="5">5 s</option><option value="10">10 s</option><option value="15">15 s</option></select></div>
-      <div class="lab-row"><span>Dev Connection</span><select id="lab-dev"><option value="unknown">Not sure</option><option value="on">On</option><option value="off">Off</option></select></div>
-      <div class="lab-row"><span>Phone</span><select id="lab-phone"><option value="locked">Locked in pocket</option><option value="hand">Unlocked</option><option value="mixed">Mixed</option></select></div>
-      <div class="lab-row"><span>Other GPS app running</span><input type="checkbox" id="lab-gpsapp"></div>
-      <div class="lab-row"><span>Note</span><input type="text" id="lab-note" maxlength="40" placeholder="optional"></div>
-    </div>
+    <div class="settings-row"><div><span class="settings-label">Use phone GPS</span><span class="settings-desc">Measures distance and pace with your phone's GPS while a workout runs, even with the phone locked. The Pebble app needs location access ("Always" on iPhone). Uses some phone battery.</span></div><input type="checkbox" id="gps-cb"></div>
+    <div class="settings-row"><div><span class="settings-label">GPS details in history</span><span class="settings-desc">Adds signal quality and connection numbers to each session. Useful for troubleshooting.</span></div><input type="checkbox" id="diag-cb"></div>
   </div>
   <div class="footer-ver" id="footer-ver"></div>
 </div>
@@ -234,11 +225,11 @@ input[type=checkbox]{width:22px;height:22px;flex-shrink:0}
 <div class="toast" id="toast"></div>
 
 <script>
-var PAGE_VERSION='2.6.4';
+var PAGE_VERSION='3.0';
 var MAX_SEQUENCE=100; // Must match MAX_SEQUENCE in main.c
 var deletedIds=[],historyCleared=false,historyTotal=0;
 var workouts=[],savedHistory=[],editIdx=-1;
-var settings={warnVibrate:true,startCountdown:true,showCadence:true,halfwayCue:true,cadenceMultiplier:1.0,soundMode:1,gpsProbe:true};
+var settings={warnVibrate:true,startCountdown:true,showCadence:true,halfwayCue:true,cadenceMultiplier:1.0,soundMode:1,useGps:true,showGpsDetails:false};
 var phases=[
   {key:'wu',label:'WARM UP',kind:'before'},
   {key:'run',label:'RUN',kind:'repeat'},
@@ -284,18 +275,14 @@ function init(){
   document.getElementById('cad-cb').checked=settings.showCadence!==false;
   document.getElementById('halfway-cb').checked=settings.halfwayCue!==false;
   document.getElementById('sound-cb').checked=settings.soundMode!==0;
-  document.getElementById('gps-cb').checked=settings.gpsProbe!==false;
-  var lb=settings.runLabel||{};
-  document.getElementById('hb-int').value=String([5,10,15].indexOf(Number(settings.hbInterval))>=0?Number(settings.hbInterval):10);
-  document.getElementById('lab-dev').value=['on','off'].indexOf(lb.devConn)>=0?lb.devConn:'unknown';
-  document.getElementById('lab-phone').value=['hand','mixed'].indexOf(lb.phone)>=0?lb.phone:'locked';
-  document.getElementById('lab-gpsapp').checked=lb.gpsApp!==false;
-  document.getElementById('lab-note').value=String(lb.note||'');
+  if(settings.useGps===undefined&&settings.gpsProbe!==undefined)settings.useGps=settings.gpsProbe!==false;
+  document.getElementById('gps-cb').checked=settings.useGps!==false;
+  document.getElementById('diag-cb').checked=settings.showGpsDetails===true;
   var cm=Number(settings.cadenceMultiplier);if(!cm||cm<0.6||cm>1.8)cm=1;
   document.getElementById('cad-mult').value=cm.toFixed(2);
   updateCadenceControls();renderTemplates();
   renderPhaseFields();bindFormEvents();
-  ['warn-cb','countdown-cb','halfway-cb','sound-cb','gps-cb','hb-int','lab-dev','lab-phone','lab-gpsapp','lab-note'].forEach(function(id){document.getElementById(id).addEventListener('change',markPageDirty);});
+  ['warn-cb','countdown-cb','halfway-cb','sound-cb','gps-cb','diag-cb'].forEach(function(id){document.getElementById(id).addEventListener('change',markPageDirty);});
   document.getElementById('cad-cb').addEventListener('change',function(){updateCadenceControls();markPageDirty();});
   document.getElementById('cad-mult').addEventListener('input',function(){updateCadenceControls();markPageDirty();});
   renderList();
@@ -390,87 +377,74 @@ function clearPendingDelete(){if(pendingDelete.timer)clearTimeout(pendingDelete.
 function performDelete(type,index){clearPendingDelete();if(type==='workout'){if(index<0||index>=workouts.length)return;workouts.splice(index,1);renderList();markPageDirty();toast('Workout deleted. Apply changes to keep it.');}else{if(index<0||index>=savedHistory.length)return;if(savedHistory[index].id)deletedIds.push(savedHistory[index].id);savedHistory.splice(index,1);renderHistory();markPageDirty();toast('Session removed. Apply changes to keep it.');}}
 function moveW(i,dir){var j=i+dir;if(j<0||j>=workouts.length)return;var tmp=workouts[i];workouts[i]=workouts[j];workouts[j]=tmp;renderList();markPageDirty();}
 function markPageDirty(){pageDirty=true;var b=document.getElementById('changes-banner');if(b)b.classList.add('show');}
-function getWeekLabel(ts){var d=new Date((Number(ts)||0)*1000),now=new Date(),sow=new Date(now);sow.setHours(0,0,0,0);sow.setDate(now.getDate()-now.getDay());var slw=new Date(sow);slw.setDate(sow.getDate()-7);if(d>=sow)return 'This week';if(d>=slw)return 'Last week';var ws=new Date(d);ws.setDate(d.getDate()-d.getDay());var mn=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];return 'Week of '+ws.getDate()+' '+mn[ws.getMonth()]+' '+ws.getFullYear();}
+function getWeekLabel(ts){var d=new Date((Number(ts)||0)*1000),now=new Date(),sow=new Date(now);sow.setHours(0,0,0,0);sow.setDate(now.getDate()-(now.getDay()+6)%7);var slw=new Date(sow);slw.setDate(sow.getDate()-7);if(d>=sow)return 'This week';if(d>=slw)return 'Last week';var ws=new Date(d);ws.setDate(d.getDate()-(d.getDay()+6)%7);var mn=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];return 'Week of '+ws.getDate()+' '+mn[ws.getMonth()]+' '+ws.getFullYear();}
 function hDur(s){s=Number(s)||0;if(s<60)return s+'s';var h=Math.floor(s/3600),m=Math.floor((s%3600)/60),x=s%60;return h?h+':'+pad(m)+':'+pad(x):pad(m)+':'+pad(x);}
 function hDate(v){var d=new Date((Number(v)||0)*1000);return d.toLocaleDateString()+' '+pad(d.getHours())+':'+pad(d.getMinutes());}
 function phaseColour(t){var c=['#b8b8bd','#009A00','#00AAFF','#FFAA00','#ff3b30','#44c7f4'];return c[Number(t)||0]||'#8e8e93';}
 function histPhaseLabel(t){var l=['WARM UP','RUN','JOG','WALK','REST','COOL DOWN'];return l[Number(t)||0]||'PHASE';}
 function phaseCadenceText(ph){var spm=Number(ph.cadence)||0;if(spm>=50)return '~'+spm+' SPM avg';if((Number(ph.steps)||0)>0)return '<50 SPM est.';return 'No cadence';}
 function fmtPace(secPerKm){var m=Math.floor(secPerKm/60),x=Math.round(secPerKm%60);if(x===60){m++;x=0;}return m+':'+pad(x)+' /km';}
-function phaseExtraLines(ph){var out='',d=Number(ph.distance)||0,dur=Number(ph.duration)||0;if(ph.avgHr>0)out+='<div class="phase-detail-subvalue">HR '+ph.avgHr+' avg'+(ph.maxHr>0?' &middot; '+ph.maxHr+' max':'')+'</div>';if(d>=100&&dur>0){var pace=dur*1000/d;if(pace>=120&&pace<=1200)out+='<div class="phase-detail-subvalue">~'+fmtPace(pace)+' est.</div>';}return out;}
-function renderPhaseDetail(x){var ph=x.phases||[];if(!ph.length)return '<div class="phase-detail"><div class="phase-detail-title">Phase breakdown</div><div class="meta">No phase-level data was saved for this session.</div></div>';var html='<div class="phase-detail"><div class="phase-detail-title">Phase breakdown</div>';ph.forEach(function(p){var count=Number(p.count)||0,dur=Number(p.duration)||0,steps=Number(p.steps)||0,label=p.label||histPhaseLabel(p.type);var perRound=count>1?Math.round(dur/count):dur;var meta=count>1?(count+' rounds &middot; '+hDur(perRound)+' avg'):hDur(dur);var extra=phaseExtraLines(p)+(p.maxCadence>=50?'<div class="phase-detail-subvalue">peak ~'+p.maxCadence+' SPM</div>':'');html+='<div class="phase-detail-row"><div class="phase-chip" style="background:'+phaseColour(p.type)+'"></div><div><div class="phase-detail-name">'+esc(label)+'</div><div class="phase-detail-meta">'+meta+'</div></div><div class="phase-detail-value">'+esc(phaseCadenceText(p))+extra+'<div class="phase-detail-subvalue">'+esc(steps)+' steps</div></div></div>';});html+='</div>';return html;}
+function phaseExtraLines(ph,gt){var out='',d=Number(ph.distance)||0,dur=Number(ph.duration)||0;if(ph.avgHr>0)out+='<div class="phase-detail-subvalue">HR '+ph.avgHr+' avg'+(ph.maxHr>0?' &middot; '+ph.maxHr+' max':'')+'</div>';var t=gt&&gt[ph.type];if(t&&t.dist>0&&t.dur>0){var gp=t.dur*1000/t.dist;if(gp>=120&&gp<=1200){out+='<div class="phase-detail-subvalue">'+fmtPace(gp)+' GPS</div>';return out;}}if(d>=100&&dur>0){var pace=dur*1000/d;if(pace>=120&&pace<=1200)out+='<div class="phase-detail-subvalue">~'+fmtPace(pace)+' est.</div>';}return out;}
+function renderPhaseDetail(x){var ph=x.phases||[];if(!ph.length)return '<div class="phase-detail"><div class="phase-detail-title">Phase breakdown</div><div class="meta">No phase-level data was saved for this session.</div></div>';var gt=(x.gps&&x.gps.ok&&x.gps.types)||null;var html='<div class="phase-detail"><div class="phase-detail-title">Phase breakdown</div>';ph.forEach(function(p){var count=Number(p.count)||0,dur=Number(p.duration)||0,steps=Number(p.steps)||0,label=p.label||histPhaseLabel(p.type);var perRound=count>1?Math.round(dur/count):dur;var meta=count>1?(count+' rounds &middot; '+hDur(perRound)+' avg'):hDur(dur);var extra=phaseExtraLines(p,gt)+(p.maxCadence>=50?'<div class="phase-detail-subvalue">peak ~'+p.maxCadence+' SPM</div>':'');html+='<div class="phase-detail-row"><div class="phase-chip" style="background:'+phaseColour(p.type)+'"></div><div><div class="phase-detail-name">'+esc(label)+'</div><div class="phase-detail-meta">'+meta+'</div></div><div class="phase-detail-value">'+esc(phaseCadenceText(p))+extra+'<div class="phase-detail-subvalue">'+esc(steps)+' steps</div></div></div>';});html+='</div>';return html;}
 
-/* GPS probe report (v2.6.3). Verdict thresholds:
- *   steady  : max gap <= 15 s and coverage >= 90 %
- *   patchy  : coverage 30-89 % or gaps above 15 s
- *   unusable: coverage under 30 %
- *   none    : no fixes during the session
- * Reports with g.v >= 2 add heartbeat diagnostics; g.v >= 3 adds the JS
- * timer check, watch battery and the run label.
+/* ---- GPS in history (v3.0) ----------------------------------------------
+ * v3.0 summaries (g.v === 4): g.ok when coverage >= 80 %; then g.dist is
+ * the active-time GPS distance and becomes the main figure. Older test-build
+ * reports (g.v <= 3) are only shown when GPS details are turned on.
  */
-function gpsVerdict(g){if(!g||!g.fixes)return 'none';if(g.maxGap<=15&&g.coverage>=90)return 'good';if(g.coverage<30)return 'unusable';return 'patchy';}
-function fmtMin(s){s=Number(s)||0;return s<60?s+'s':Math.round(s/60)+' min';}
-/* One-line reading of the numbers: what the evidence points to, not proof. */
-function gpsDiagnosis(g){
-  if(!(g.v>=2))return '';
-  if(!g.hbCount)return 'No heartbeats reached the phone. Check the watch app is v2.6.3.';
-  var cov=Number(g.coverage)||0;
-  if(g.jsAwakePct==null)return '';
-  /* v2.6.4: judge by the longest suspension, not awake %. Naps of a few
-   * seconds between heartbeats are normal and don't cost GPS fixes. */
-  var stall=Number(g.jsMaxStall)||0;
-  if(cov>=80&&stall<=15)return 'GPS kept up. The phone app only napped briefly between heartbeats, which is normal.';
-  if(cov>=80)return 'GPS kept up despite some longer phone app suspensions.';
-  if(stall>60)return 'The phone app was suspended for long stretches and GPS dropped out. Compare the minute map with when the phone locked.';
-  return 'The phone app stayed responsive but GPS fixes were sparse. Points to iOS location delivery.';
+function fmtKm(m){m=Number(m)||0;return m>=1000?(m/1000).toFixed(2)+' km':Math.round(m)+' m';}
+function gpsIsMain(x){return !!(x.gps&&x.gps.v>=4&&x.gps.ok&&x.gps.dist>0);}
+function distanceText(x){
+  if(gpsIsMain(x))return esc(fmtKm(x.gps.dist))+'<span class="gps-chip">GPS</span>';
+  var d=Number(x.distance)||0;return d>0?'~'+esc(fmtKm(d))+' est.':'';
 }
-function labelText(l){
-  if(!l)return '';
-  var dev={on:'Dev Connection on',off:'Dev Connection off'}[l.devConn]||'Dev Connection ?';
-  var ph={locked:'phone locked',hand:'phone unlocked',mixed:'phone mixed'}[l.phone]||'';
-  return [dev,ph,l.gpsApp?'other GPS app on':'no other GPS app',l.note?esc(l.note):''].filter(function(x){return x;}).join(' &middot; ');
+/* Short, public-facing note: only when something is worth knowing. */
+function gpsNote(x){
+  var g=x.gps,out=[];if(!g||!(g.v>=4))return '';
+  if(g.ok&&g.pausedDist>=50)out.push('+'+esc(fmtKm(g.pausedDist))+' moved while paused (not counted)');
+  if(!g.ok){
+    if(!g.fixes)out.push('No GPS signal reached the phone this time, so distance is estimated from steps.');
+    else out.push('GPS signal was patchy, so distance is estimated from steps.');
+  }
+  return out.length?'<div class="gps-note">'+out.join('<br>')+'</div>':'';
 }
-function renderGpsProbe(x,full){
-  var g=x.gps;if(!g)return '';
-  var v=gpsVerdict(g),cls=v==='good'?'gps-probe':v==='patchy'?'gps-probe warn':'gps-probe bad';
-  var head={good:'GPS probe: steady',patchy:'GPS probe: patchy',unusable:'GPS probe: unusable',none:'GPS probe: no fixes'}[v];
-  if(!full)return '<div class="'+cls+'"><b>'+head+'</b>'+(g.fixes?' &middot; coverage '+g.coverage+'%':'')+'</div>';
-  var lines=['<b>'+head+'</b>'];
-  if(g.fixes){
-    lines.push(g.fixes+' fixes &middot; one every ~'+g.avgInterval+'s &middot; longest gap '+g.maxGap+'s');
-    lines.push('Coverage '+g.coverage+'% &middot; accuracy &plusmn;'+g.medianAcc+' m (median)');
-    if(g.distM>0)lines.push('GPS distance '+(g.distM/1000).toFixed(2)+' km'+(x.distance>0?' vs Pebble Health ~'+(x.distance/1000).toFixed(2)+' km':''));
-    if(g.altSpan!=null)lines.push('GPS altitude range '+g.altSpan+' m (raw, noisy)');
+function gpsDetails(x){
+  var g=x.gps,cb=document.getElementById('diag-cb');if(!g||!(cb?cb.checked:settings.showGpsDetails===true))return '';
+  var L=['<b>GPS details</b>'];
+  if(g.v>=4){
+    L.push(g.fixes+' fixes &middot; coverage '+g.coverage+'% &middot; longest gap '+g.maxGap+'s');
+    if(g.fixes)L.push('Accuracy &plusmn;'+g.acc+' m &middot; delay ~'+g.lag+'s (medians)');
+    if(g.dist>0&&!g.ok)L.push('Partial GPS distance '+esc(fmtKm(g.dist)));
+    if(x.distance>0)L.push('Pebble Health estimate ~'+esc(fmtKm(x.distance)));
+    if(g.hbOk!=null){var tot=(Number(g.hbOk)||0)+(Number(g.hbFail)||0);L.push('Watch link '+(tot?Math.round(g.hbOk*100/tot)+'% ('+g.hbOk+' of '+tot+')':'no data'));}
+    else L.push('No watch heartbeats received (watch app older than 3.0?)');
+    if(g.battS!=null&&g.battE!=null)L.push('Watch battery '+g.battS+'% &rarr; '+g.battE+'%');
+    if(g.lateS>60)L.push('GPS started '+Math.round(g.lateS/60)+' min after GO');
+    if(g.errors)L.push(g.errors+' GPS error'+(g.errors===1?'':'s'));
   }else{
-    lines.push('No GPS fixes arrived while this session ran.');
+    L.push('Test-build report: '+(Number(g.fixes)||0)+' fixes &middot; coverage '+(Number(g.coverage)||0)+'%'+(g.distM>0?' &middot; '+esc(fmtKm(g.distM)):''));
   }
-  if(g.v>=2){
-    if(g.jsAwakePct!=null)lines.push('Longest phone app suspension '+fmtMin(g.jsMaxStall)+' &middot; awake '+g.jsAwakePct+'%');
-    var hp=g.hbPct!=null?g.hbPct:g.awakePct;
-    if(hp!=null)lines.push('Heartbeats received '+hp+'%'+(g.hbInterval?' (every '+g.hbInterval+'s)':''));
-    if(g.hbOk!=null){var tot=(Number(g.hbOk)||0)+(Number(g.hbFail)||0);if(tot)lines.push('Watch heartbeat delivery '+Math.round(g.hbOk*100/tot)+'% ('+g.hbOk+' of '+tot+')');}
-    if(g.battStart!=null&&g.battEnd!=null)lines.push('Watch battery '+g.battStart+'% &rarr; '+g.battEnd+'% (10% steps)');
-    if(g.fixes)lines.push('Fix delay ~'+(Number(g.lagMed)||0)+'s (median)');
-    if(g.probeLateS>60)lines.push('GPS probe started '+fmtMin(g.probeLateS)+' after GO');
-    if(g.jsRestartS>0)lines.push('Phone app restarted '+fmtMin(g.jsRestartS)+' into the session');
-  }
-  if(g.errors)lines.push(g.errors+' GPS error'+(g.errors===1?'':'s')+(g.lastError?' (last: '+esc(g.lastError)+')':''));
-  if(g.offsetH)lines.push('Matched with a '+g.offsetH+' h clock offset');
-  var html=lines.join('<br>');
-  if(g.v>=2&&g.minuteMap){
-    var key=g.v>=3?'# GPS fix &middot; - JS awake, no fix &middot; . JS suspended &middot; ? no data':'# GPS fix &middot; - heartbeat, no fix &middot; . neither';
-    html+='<div class="gps-map" aria-label="Per-minute GPS map">'+esc(g.minuteMap)+'</div><div class="meta">Per minute: '+key+'</div>';
-  }
-  var dx=gpsDiagnosis(g);if(dx)html+='<div class="gps-diag">'+esc(dx)+'</div>';
-  if(x.label)html+='<div class="gps-label">Test: '+labelText(x.label)+'</div>';
-  return '<div class="'+cls+'">'+html+'</div>';
+  return '<div class="gps-details">'+L.join('<br>')+'</div>';
 }
-/* v2.6.4: sessions rebuilt by the watch after the app stopped mid-workout. */
+/* Sessions rebuilt by the watch after the app stopped mid-workout. */
 function renderRecovered(x){
   var r=x.recovered;if(!r)return '';
-  var ev=['','start','pause','resume','phase change','running','app closed'][Number(r.event)||0]||'unknown';
-  var head=Number(r.event)===6?'Saved when the app was closed mid-workout.':'Recovered after the app stopped unexpectedly.';
-  return '<div class="recovered"><b>'+head+'</b><br>Last recorded: '+esc(ev)+(r.pauses?' &middot; '+r.pauses+(r.pauses>=7?'+':'')+' pause'+(r.pauses===1?'':'s')+' before it stopped':'')+'<br>Time and steps are approximate, up to the last minute recorded.</div>';
+  var closed=Number(r.event)===6;
+  return '<div class="recovered"><b>'+(closed?'Saved when the app was closed mid-workout.':'Recovered after the app stopped unexpectedly.')+'</b><br>Time and steps are up to the last minute recorded.</div>';
+}
+/* Pace by rep: reps of 60 s+ and 150 m+, bar length = speed. */
+function renderPaceChart(x){
+  var g=x.gps;if(!g||!g.ok||!g.reps)return '';
+  var reps=[],n={};
+  g.reps.forEach(function(r){var ty=r[0],dur=r[1],dist=r[2];n[ty]=(n[ty]||0)+1;if(dur>=60&&dist>=150){var pace=dur*1000/dist;if(pace>=120&&pace<=1200)reps.push({ty:ty,k:n[ty],pace:pace});}});
+  if(reps.length<2)return '';
+  var fastest=Math.min.apply(null,reps.map(function(r){return r.pace;}));
+  var html='<div class="pace-chart"><div class="phase-detail-title">Pace by rep (GPS)</div>';
+  reps.forEach(function(r){
+    var w=Math.max(8,Math.round(fastest/r.pace*100));
+    html+='<div class="pace-row"><span class="pace-lbl">'+esc(histPhaseLabel(r.ty).charAt(0)+histPhaseLabel(r.ty).slice(1).toLowerCase().slice(0,4))+' '+r.k+'</span><div class="pace-track"><div class="pace-bar" style="width:'+w+'%;background:'+phaseColour(r.ty)+'"></div></div><span class="pace-val">'+esc(fmtPace(r.pace).replace(' /km',''))+'</span></div>';
+  });
+  return html+'<div class="meta">min/km &middot; shorter reps are left out because GPS can\'t time them reliably</div></div>';
 }
 function toggleHistoryDetail(i){if(!savedHistory[i])return;savedHistory[i]._open=!savedHistory[i]._open;renderHistory();}
 function renderHistory(){
@@ -481,11 +455,11 @@ function renderHistory(){
   var html='',lastWeek='';
   savedHistory.forEach(function(x,i){
     var wk=getWeekLabel(x.date||0);if(wk!==lastWeek){html+='<div class="week-sep">'+esc(wk)+'</div>';lastWeek=wk;}
-    var isFree=x.type==='FREE RUN',bc=isFree?'badge-free':'badge-interval',dist=Number(x.distance)||0;
-    var distText=dist>0?(dist>=1000?'~'+(dist/1000).toFixed(2)+' km':'~'+dist+' m'):'';
-    var sl=(x.steps>0||distText)?'<div class="meta">'+(x.steps>0?esc(x.steps)+' steps':'')+(x.steps>0&&distText?' &middot; ':'')+esc(distText)+(x.cadence?' &middot; ~'+esc(x.cadence)+' SPM avg':'')+'</div>':'';
+    var isFree=x.type==='FREE RUN',bc=isFree?'badge-free':'badge-interval';
+    var distText=distanceText(x);
+    var sl=(x.steps>0||distText)?'<div class="meta">'+(x.steps>0?esc(x.steps)+' steps':'')+(x.steps>0&&distText?' &middot; ':'')+distText+(x.cadence?' &middot; ~'+esc(x.cadence)+' SPM avg':'')+'</div>':'';
     var hrl=x.avgHr>0?'<div class="meta">HR '+x.avgHr+' avg'+(x.maxHr>0?' &middot; '+x.maxHr+' max':'')+'</div>':'';
-    html+='<div class="history-card '+(x._open?'open':'')+'" onclick="toggleHistoryDetail('+i+')"><div class="card-top"><div class="history-main"><div class="history-name">'+esc(x.name)+'</div><div class="'+bc+'">'+esc(x.type)+'</div></div><button id="session-del-'+i+'" class="del-btn icon-delete" onclick="event.stopPropagation();requestDelete(\'session\','+i+')" aria-label="Delete session"><span class="icon-glyph">&#x00d7;</span></button></div><div class="meta">'+esc(hDate(x.date))+' &middot; '+esc(hDur(x.duration))+(x.pausedS>=5?' active &middot; +'+esc(hDur(x.pausedS))+' paused':'')+'</div>'+sl+hrl+renderRecovered(x)+renderGpsProbe(x,!!x._open)+'<div class="history-hint">'+(x._open?'Tap to collapse':'Tap for phase breakdown')+'</div>'+(x._open?renderPhaseDetail(x):'')+'</div>';
+    html+='<div class="history-card '+(x._open?'open':'')+'" onclick="toggleHistoryDetail('+i+')"><div class="card-top"><div class="history-main"><div class="history-name">'+esc(x.name)+'</div><div class="'+bc+'">'+esc(x.type)+'</div></div><button id="session-del-'+i+'" class="del-btn icon-delete" onclick="event.stopPropagation();requestDelete(\'session\','+i+')" aria-label="Delete session"><span class="icon-glyph">&#x00d7;</span></button></div><div class="meta">'+esc(hDate(x.date))+' &middot; '+esc(hDur(x.duration))+(x.pausedS>=5?' active &middot; +'+esc(hDur(x.pausedS))+' paused':'')+'</div>'+sl+hrl+gpsNote(x)+renderRecovered(x)+(x._open?gpsDetails(x):'')+'<div class="history-hint">'+(x._open?'Tap to collapse':'Tap for phase breakdown')+'</div>'+(x._open?renderPhaseDetail(x)+renderPaceChart(x):'')+'</div>';
   });
   e.innerHTML=html;
 }
@@ -498,10 +472,9 @@ function collect(){
   settings.showCadence=document.getElementById('cad-cb').checked;
   settings.halfwayCue=document.getElementById('halfway-cb').checked;
   settings.soundMode=document.getElementById('sound-cb').checked?1:0;
-  settings.gpsProbe=document.getElementById('gps-cb').checked;
-  settings.hbInterval=Number(document.getElementById('hb-int').value)||10;
-  settings.runLabel={devConn:document.getElementById('lab-dev').value,phone:document.getElementById('lab-phone').value,
-    gpsApp:document.getElementById('lab-gpsapp').checked,note:String(document.getElementById('lab-note').value||'').slice(0,40)};
+  settings.useGps=document.getElementById('gps-cb').checked;
+  settings.showGpsDetails=document.getElementById('diag-cb').checked;
+  ['gpsProbe','hbInterval','runLabel'].forEach(function(k){delete settings[k];});
   settings.cadenceMultiplier=Math.max(0.6,Math.min(1.8,Number(document.getElementById('cad-mult').value)||1));
   return{v:PAGE_VERSION,workouts:workouts,deletedIds:historyCleared?[]:deletedIds,clearHistory:historyCleared,settings:settings,send:true};
 }
