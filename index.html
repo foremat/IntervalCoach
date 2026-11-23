@@ -164,13 +164,34 @@ input[type=checkbox]{width:22px;height:22px;flex-shrink:0}
 .load-error{display:none;margin:12px 16px;padding:12px 14px;border-radius:10px;background:#fff0f0;border:1px solid #ffb4b4;color:#a51f1f;font-size:13px}
 .load-error.show{display:block}
 .footer-ver{text-align:center;font-size:11px;color:#aeaeb2;padding:6px 0 18px}
+/* t2: collapsible groups + floating Save & Sync */
+#list-view{padding-bottom:96px}
+.grp{background:#fff;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.08);margin-bottom:10px;overflow:hidden}
+.grp>summary{list-style:none;display:flex;align-items:center;gap:10px;padding:14px 16px;cursor:pointer;min-height:56px}
+.grp>summary::-webkit-details-marker{display:none}
+.grp-text{flex:1;min-width:0}
+.grp-title{font-size:16px;font-weight:700;display:block}
+.grp-sum{font-size:12px;color:#8e8e93;display:block;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.grp-chev{color:#c7c7cc;font-size:18px;transition:transform .15s}
+.grp[open] .grp-chev{transform:rotate(90deg)}
+.grp-body{padding:0 12px 12px}
+.grp-body .settings-row{box-shadow:none;background:#f7f7f9;padding:12px 14px}
+.grp-body .experimental-card{margin:0 0 8px}
+.sel{font:inherit;font-size:15px;padding:8px 10px;border:1px solid #d1d1d6;border-radius:9px;background:#fff;color:#1c1c1e;max-width:52%}
+.sub-row{margin-left:14px;border-left:3px solid #d8e6f5}
+.save-bar{position:fixed;left:0;right:0;bottom:0;z-index:30;display:flex;align-items:center;gap:12px;padding:10px 16px 26px;background:rgba(242,242,247,.96);border-top:1px solid #e5e5ea;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+.save-state{flex:1;font-size:13px;color:#8e8e93}
+.save-bar.dirty .save-state{color:#6c4b00;font-weight:650}
+.save-btn{border:0;border-radius:12px;background:#00468B;color:#fff;padding:13px 18px;font-size:16px;font-weight:700;cursor:pointer;white-space:nowrap}
+.save-bar:not(.dirty) .save-btn{background:#e5e5ea;color:#00468B}
+@media(min-width:480px){.save-bar{max-width:480px;margin:auto}}
+.diag-block{margin-top:8px;padding:8px 10px;border-radius:8px;background:#eef3fa;color:#2c3e57;font-size:12px;line-height:1.5}
 @media(min-width:480px){body{max-width:480px;margin:auto}}
 </style>
 </head>
 <body>
 <div id="list-view">
   <div class="hdr"><h1>&#9201; Interval Coach</h1><div class="hdr-sub">Workout Configuration</div></div>
-  <div id="changes-banner" class="changes-banner"><span>Changes are not stored until you apply them.</span><button onclick="sendAll()">Apply &amp; Sync</button></div>
   <div id="load-error" class="load-error">Couldn't read your data from the watch app. Close this page and open settings again. Nothing has been changed.</div>
   <div class="section">
     <div style="display:flex;justify-content:space-between;align-items:baseline;padding:8px 0 4px"><div class="section-title" style="padding:0">Workouts</div><div id="wk-count" style="font-size:12px;color:#8e8e93"></div></div>
@@ -179,28 +200,43 @@ input[type=checkbox]{width:22px;height:22px;flex-shrink:0}
     <div id="tmpl-section" class="tmpl-section"><div class="card" id="tmpl-list"></div></div>
     <button id="tmpl-toggle-btn" class="tmpl-btn" onclick="showTemplates()">&#9660; Start from template</button>
     <div id="limit-note" class="limit-note">Eight-workout limit reached. Delete a workout to create another.</div>
-  </div>
-  <div class="section">
-    <div class="section-title">Apply changes</div>
-    <button class="btn-primary" onclick="sendAll()">&#x21BB; Apply Changes &amp; Sync to Watch</button>
     <button class="btn-history" onclick="showHistory()">View Workout History</button>
   </div>
   <div class="section">
     <div class="section-title">Settings</div>
-    <div class="settings-row"><div><span class="settings-label">3-2-1 countdown</span><span class="settings-desc">Show 3, 2, 1 before starting and when resuming from pause</span></div><input type="checkbox" id="countdown-cb"></div>
-    <div class="settings-row"><div><span class="settings-label">Phase vibration cues</span><span class="settings-desc">Vibrate before and at interval phase changes. Works during Quiet Time while a workout is running.</span></div><input type="checkbox" id="warn-cb"></div>
-    <div class="settings-row"><div><span class="settings-label">Show cadence <span class="tag">EXPERIMENTAL</span></span><span class="settings-desc">Estimated steps per minute (Free Run and intervals)</span></div><input type="checkbox" id="cad-cb"></div>
-    <div id="cad-cal-card" class="experimental-card" aria-hidden="true">
+    <details class="grp" id="grp-watch" open>
+      <summary><span class="grp-text"><span class="grp-title">On the watch</span><span class="grp-sum" id="sum-watch"></span></span><span class="grp-chev">&#x203A;</span></summary>
+      <div class="grp-body">
+        <div class="settings-row"><div><span class="settings-label">Watch shows</span><span class="settings-desc">Under the timer, in Free Run and intervals</span></div>
+          <select class="sel" id="metric-sel" aria-label="Watch shows"><option value="pace">Pace</option><option value="distance">Distance</option><option value="cadence">Cadence (beta)</option><option value="off">Steps only</option></select></div>
+        <div class="settings-row sub-row" id="pace-row"><div><span class="settings-label">Pace</span><span class="settings-desc" id="pace-desc"></span></div>
+          <select class="sel" id="pace-sel" aria-label="Pace type"><option value="auto">Auto</option><option value="rolling">Rolling 30 s</option><option value="average">Whole-run avg</option></select></div>
+        <div id="cad-cal-card" class="experimental-card" aria-hidden="true">
       <div class="experimental-title">Cadence calibration</div>
       <div class="experimental-note">Wrist step counts can be less accurate than phone or hip-worn pedometers, and Pebble may count low. To calibrate, divide your phone's step count by Pebble's (e.g. 500 &divide; 400 = 1.25x). Treat it as a signal, not gospel.</div>
       <div class="cal-row"><div class="cal-slider-wrap"><input type="range" id="cad-mult" min="0.60" max="1.80" step="0.05" value="1.00" aria-label="Cadence multiplier"><div class="cal-scale"><span>0.60x</span><div class="cal-tick-mark" title="1.0x default"></div><span>1.80x</span></div></div><div class="cal-value-wrap"><span class="cal-value" id="cad-mult-value">1.00x</span><span class="cal-default" id="cad-default-label">default</span></div></div>
     </div>
-    <div class="settings-row"><div><span class="settings-label">Halfway cue</span><span class="settings-desc">Single pulse at the midpoint of each phase (20s+)</span></div><input type="checkbox" id="halfway-cb"></div>
-    <div class="settings-row"><div><span class="settings-label">Watch sounds <span class="tag">TIME 2</span></span><span class="settings-desc">Phase tones and 3-2-1 pips from the Pebble Time 2 speaker. Respects the watch mute setting. Other watches ignore this.</span></div><input type="checkbox" id="sound-cb"></div>
-    <div class="settings-row"><div><span class="settings-label">Use phone GPS</span><span class="settings-desc">Measures distance and pace with your phone's GPS while a workout runs, even with the phone locked. The Pebble app needs location access ("Always" on iPhone). Uses some phone battery.</span></div><input type="checkbox" id="gps-cb"></div>
-    <div class="settings-row"><div><span class="settings-label">GPS details in history</span><span class="settings-desc">Adds signal quality and connection numbers to each session. Useful for troubleshooting.</span></div><input type="checkbox" id="diag-cb"></div>
+        <div class="settings-row"><div><span class="settings-label">Phase vibration cues</span><span class="settings-desc">Vibrate before and at phase changes, even in Quiet Time</span></div><input type="checkbox" id="warn-cb"></div>
+        <div class="settings-row"><div><span class="settings-label">Halfway cue</span><span class="settings-desc">One pulse at the midpoint of phases 20 s or longer</span></div><input type="checkbox" id="halfway-cb"></div>
+        <div class="settings-row"><div><span class="settings-label">3-2-1 countdown</span><span class="settings-desc">Before starting and when resuming</span></div><input type="checkbox" id="countdown-cb"></div>
+        <div class="settings-row"><div><span class="settings-label">Watch sounds <span class="tag">TIME 2</span></span><span class="settings-desc">Phase tones from the Time 2 speaker. Other watches ignore this.</span></div><input type="checkbox" id="sound-cb"></div>
+      </div>
+    </details>
+    <details class="grp" id="grp-gps">
+      <summary><span class="grp-text"><span class="grp-title">Phone GPS</span><span class="grp-sum" id="sum-gps"></span></span><span class="grp-chev">&#x203A;</span></summary>
+      <div class="grp-body">
+        <div class="settings-row"><div><span class="settings-label">Use phone GPS</span><span class="settings-desc">Distance and pace from your phone, even when it's locked. The Pebble app needs location access ("Always" on iPhone). Uses some phone battery.</span></div><input type="checkbox" id="gps-cb"></div>
+      </div>
+    </details>
+    <details class="grp" id="grp-diag">
+      <summary><span class="grp-text"><span class="grp-title">Troubleshooting</span><span class="grp-sum" id="sum-diag"></span></span><span class="grp-chev">&#x203A;</span></summary>
+      <div class="grp-body">
+        <div class="settings-row"><div><span class="settings-label">Details in history</span><span class="settings-desc">Adds GPS quality, watch link and app-close details to each session</span></div><input type="checkbox" id="diag-cb"></div>
+      </div>
+    </details>
   </div>
   <div class="footer-ver" id="footer-ver"></div>
+  <div class="save-bar" id="save-bar"><span class="save-state" id="save-state">Settings match your watch</span><button class="save-btn" onclick="sendAll()">Save &amp; Sync</button></div>
 </div>
 
 <div id="history-view">
@@ -225,11 +261,11 @@ input[type=checkbox]{width:22px;height:22px;flex-shrink:0}
 <div class="toast" id="toast"></div>
 
 <script>
-var PAGE_VERSION='3.0';
+var PAGE_VERSION='3.0t2';
 var MAX_SEQUENCE=100; // Must match MAX_SEQUENCE in main.c
 var deletedIds=[],historyCleared=false,historyTotal=0;
 var workouts=[],savedHistory=[],editIdx=-1;
-var settings={warnVibrate:true,startCountdown:true,showCadence:true,halfwayCue:true,cadenceMultiplier:1.0,soundMode:1,useGps:true,showGpsDetails:false};
+var settings={warnVibrate:true,startCountdown:true,showCadence:false,halfwayCue:true,cadenceMultiplier:1.0,soundMode:1,useGps:true,showGpsDetails:false,watchMetric:'pace',paceBasis:'auto'};
 var phases=[
   {key:'wu',label:'WARM UP',kind:'before'},
   {key:'run',label:'RUN',kind:'repeat'},
@@ -272,7 +308,9 @@ function init(){
   document.getElementById('footer-ver').textContent='Settings page v'+PAGE_VERSION;
   document.getElementById('warn-cb').checked=settings.warnVibrate!==false;
   document.getElementById('countdown-cb').checked=settings.startCountdown!==false;
-  document.getElementById('cad-cb').checked=settings.showCadence!==false;
+  if(!settings.watchMetric)settings.watchMetric=settings.showCadence===true?'cadence':'pace';
+  document.getElementById('metric-sel').value=settings.watchMetric;
+  document.getElementById('pace-sel').value=settings.paceBasis||'auto';
   document.getElementById('halfway-cb').checked=settings.halfwayCue!==false;
   document.getElementById('sound-cb').checked=settings.soundMode!==0;
   if(settings.useGps===undefined&&settings.gpsProbe!==undefined)settings.useGps=settings.gpsProbe!==false;
@@ -282,12 +320,25 @@ function init(){
   document.getElementById('cad-mult').value=cm.toFixed(2);
   updateCadenceControls();renderTemplates();
   renderPhaseFields();bindFormEvents();
-  ['warn-cb','countdown-cb','halfway-cb','sound-cb','gps-cb','diag-cb'].forEach(function(id){document.getElementById(id).addEventListener('change',markPageDirty);});
-  document.getElementById('cad-cb').addEventListener('change',function(){updateCadenceControls();markPageDirty();});
+  ['warn-cb','countdown-cb','halfway-cb','sound-cb','gps-cb','diag-cb','metric-sel','pace-sel'].forEach(function(id){document.getElementById(id).addEventListener('change',function(){updateCadenceControls();markPageDirty();});});
   document.getElementById('cad-mult').addEventListener('input',function(){updateCadenceControls();markPageDirty();});
   renderList();
 }
-function updateCadenceControls(){var cb=document.getElementById('cad-cb'),card=document.getElementById('cad-cal-card'),e=document.getElementById('cad-mult'),v=document.getElementById('cad-mult-value'),dl=document.getElementById('cad-default-label');if(!cb||!card||!e||!v)return;var n=Math.max(0.6,Math.min(1.8,Number(e.value)||1));v.textContent=n.toFixed(2)+'x';v.style.color=n>1.005?'#00468B':n<0.995?'#f09000':'#8e8e93';if(dl)dl.style.display=Math.abs(n-1.0)<0.01?'block':'none';if(cb.checked){card.classList.add('show');card.setAttribute('aria-hidden','false');}else{card.classList.remove('show');card.setAttribute('aria-hidden','true');}}
+function updateCadenceControls(){var cb={checked:document.getElementById('metric-sel').value==='cadence'},card=document.getElementById('cad-cal-card'),e=document.getElementById('cad-mult'),v=document.getElementById('cad-mult-value'),dl=document.getElementById('cad-default-label');if(!cb||!card||!e||!v)return;var n=Math.max(0.6,Math.min(1.8,Number(e.value)||1));v.textContent=n.toFixed(2)+'x';v.style.color=n>1.005?'#00468B':n<0.995?'#f09000':'#8e8e93';if(dl)dl.style.display=Math.abs(n-1.0)<0.01?'block':'none';if(cb.checked){card.classList.add('show');card.setAttribute('aria-hidden','false');}else{card.classList.remove('show');card.setAttribute('aria-hidden','true');}updateWatchControls();}
+/* t2: pace type only matters for Pace; summaries show the state of closed groups. */
+var PACE_DESC={auto:'Free Run: last 30 s. Intervals: this phase so far.',rolling:'Last 30 s, all workouts',average:'Whole run so far'};
+function updateWatchControls(){
+  var m=document.getElementById('metric-sel').value,pb=document.getElementById('pace-sel').value,gps=document.getElementById('gps-cb').checked;
+  document.getElementById('pace-row').style.display=m==='pace'?'flex':'none';
+  document.getElementById('pace-desc').textContent=PACE_DESC[pb]||'';
+  var names={pace:'Pace',distance:'Distance',cadence:'Cadence',off:'Steps only'};
+  var w=[names[m]+(m==='pace'&&pb!=='auto'?' ('+(pb==='rolling'?'rolling':'average')+')':'')];
+  w.push(document.getElementById('warn-cb').checked?'cues on':'cues off');
+  if(document.getElementById('halfway-cb').checked)w.push('halfway');
+  document.getElementById('sum-watch').textContent=w.join(' \u00b7 ');
+  document.getElementById('sum-gps').textContent=gps?'On':'Off \u2014 pace and GPS distance unavailable';
+  document.getElementById('sum-diag').textContent=document.getElementById('diag-cb').checked?'Details shown in history':'Off';
+}
 function bindFormEvents(){
   document.getElementById('f-name').addEventListener('input',function(){formDirty=true;updateNameMeta();clearNameError();});
   phases.forEach(function(p){
@@ -376,7 +427,7 @@ function requestDelete(type,index){var same=pendingDelete.type===type&&pendingDe
 function clearPendingDelete(){if(pendingDelete.timer)clearTimeout(pendingDelete.timer);pendingDelete={type:'',index:-1,timer:null};var armed=document.querySelectorAll('.armed');for(var i=0;i<armed.length;i++){if(armed[i].classList.contains('btn-icon')||armed[i].classList.contains('del-btn')){armed[i].classList.remove('armed');armed[i].innerHTML='<span class="icon-glyph">&#x00d7;</span>';}}}
 function performDelete(type,index){clearPendingDelete();if(type==='workout'){if(index<0||index>=workouts.length)return;workouts.splice(index,1);renderList();markPageDirty();toast('Workout deleted. Apply changes to keep it.');}else{if(index<0||index>=savedHistory.length)return;if(savedHistory[index].id)deletedIds.push(savedHistory[index].id);savedHistory.splice(index,1);renderHistory();markPageDirty();toast('Session removed. Apply changes to keep it.');}}
 function moveW(i,dir){var j=i+dir;if(j<0||j>=workouts.length)return;var tmp=workouts[i];workouts[i]=workouts[j];workouts[j]=tmp;renderList();markPageDirty();}
-function markPageDirty(){pageDirty=true;var b=document.getElementById('changes-banner');if(b)b.classList.add('show');}
+function markPageDirty(){pageDirty=true;var b=document.getElementById('save-bar');if(b)b.classList.add('dirty');var s=document.getElementById('save-state');if(s)s.textContent='Unsaved changes';}
 function getWeekLabel(ts){var d=new Date((Number(ts)||0)*1000),now=new Date(),sow=new Date(now);sow.setHours(0,0,0,0);sow.setDate(now.getDate()-(now.getDay()+6)%7);var slw=new Date(sow);slw.setDate(sow.getDate()-7);if(d>=sow)return 'This week';if(d>=slw)return 'Last week';var ws=new Date(d);ws.setDate(d.getDate()-(d.getDay()+6)%7);var mn=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];return 'Week of '+ws.getDate()+' '+mn[ws.getMonth()]+' '+ws.getFullYear();}
 function hDur(s){s=Number(s)||0;if(s<60)return s+'s';var h=Math.floor(s/3600),m=Math.floor((s%3600)/60),x=s%60;return h?h+':'+pad(m)+':'+pad(x):pad(m)+':'+pad(x);}
 function hDate(v){var d=new Date((Number(v)||0)*1000);return d.toLocaleDateString()+' '+pad(d.getHours())+':'+pad(d.getMinutes());}
@@ -402,6 +453,7 @@ function distanceText(x){
 function gpsNote(x){
   var g=x.gps,out=[];if(!g||!(g.v>=4))return '';
   if(g.ok&&g.pausedDist>=50)out.push('+'+esc(fmtKm(g.pausedDist))+' moved while paused (not counted)');
+  if(x.diag&&x.diag.resumed)out.push('Continued after the app closed');
   if(!g.ok){
     if(!g.fixes)out.push('No GPS signal reached the phone this time, so distance is estimated from steps.');
     else out.push('GPS signal was patchy, so distance is estimated from steps.');
@@ -416,21 +468,44 @@ function gpsDetails(x){
     if(g.fixes)L.push('Accuracy &plusmn;'+g.acc+' m &middot; delay ~'+g.lag+'s (medians)');
     if(g.dist>0&&!g.ok)L.push('Partial GPS distance '+esc(fmtKm(g.dist)));
     if(x.distance>0)L.push('Pebble Health estimate ~'+esc(fmtKm(x.distance)));
-    if(g.hbOk!=null){var tot=(Number(g.hbOk)||0)+(Number(g.hbFail)||0);L.push('Watch link '+(tot?Math.round(g.hbOk*100/tot)+'% ('+g.hbOk+' of '+tot+')':'no data'));}
+    if(g.hbOk!=null){var tot=(Number(g.hbOk)||0)+(Number(g.hbFail)||0);L.push('Watch link '+(tot?Math.round(g.hbOk*100/tot)+'% ('+g.hbOk+' of '+tot+')':'no data')+(g.hbSkip?' &middot; '+g.hbSkip+' skipped (busy)':''));}
     else L.push('No watch heartbeats received (watch app older than 3.0?)');
     if(g.battS!=null&&g.battE!=null)L.push('Watch battery '+g.battS+'% &rarr; '+g.battE+'%');
-    if(g.lateS>60)L.push('GPS started '+Math.round(g.lateS/60)+' min after GO');
+    if(g.firstFixS!=null&&g.firstFixS>30)L.push('First GPS fix '+(g.firstFixS>=120?Math.round(g.firstFixS/60)+' min':g.firstFixS+' s')+' after GO');
+    if(g.gaps)L.push('Watch app silent '+g.gaps+'&times; (closed or out of range)');
     if(g.errors)L.push(g.errors+' GPS error'+(g.errors===1?'':'s'));
   }else{
     L.push('Test-build report: '+(Number(g.fixes)||0)+' fixes &middot; coverage '+(Number(g.coverage)||0)+'%'+(g.distM>0?' &middot; '+esc(fmtKm(g.distM)):''));
   }
   return '<div class="gps-details">'+L.join('<br>')+'</div>';
 }
+/* t2: close diagnostics from the watch, shown with details on. */
+var BTN_NAMES=['','BACK','UP','SELECT','DOWN'];
+var LAUNCH_NAMES=['system','you','phone','wakeup','worker','quick launch','timeline','smartstrap'];
+var CLOSE_NAMES={0:'Ended normally',6:'Closed mid-workout (window closed)',7:'Closed mid-workout (app exit)'};
+var LAST_EV={1:'start',2:'pause',3:'resume',4:'phase change',5:'periodic save',8:'screen covered'};
+function secs(s){return s==null?'':(s<120?s+' s':Math.round(s/60)+' min');}
+function diagDetails(x){
+  var d=x.diag,cb=document.getElementById('diag-cb');if(!d||!(cb?cb.checked:settings.showGpsDetails===true))return '';
+  var L=['<b>Session diagnostics</b>'],rec=x.recovered;
+  var cl=rec?Number(rec.event):Number(d.close);
+  L.push(CLOSE_NAMES[cl]||('Stopped unexpectedly &middot; last save: '+(LAST_EV[cl]||('event '+cl))));
+  if(d.covers)L.push('Screen covered '+d.covers+'&times;'+(d.sinceCover!=null?' &middot; last '+secs(d.sinceCover)+' before':'')+(d.coveredNow?' &middot; covered at the time':''));
+  if(d.btn)L.push('Last button '+(BTN_NAMES[d.btn]||'?')+(d.sinceBtn!=null?', '+secs(d.sinceBtn)+' before':''));
+  L.push('Watch battery '+d.batt+'%'+(d.charging?' (charging)':'')+' &middot; phone '+(d.phone?'connected':'disconnected'));
+  L.push('Free memory lowest '+(d.heapMin/1024).toFixed(1)+' KB &middot; at the end '+(d.heapNow/1024).toFixed(1)+' KB');
+  if(d.skipped)L.push(d.skipped+' heartbeat'+(d.skipped===1?'':'s')+' skipped (watch busy)');
+  if(d.launch!=null)L.push('Reopened '+(d.gapMin!=null?d.gapMin+' min later':'later')+' by '+(LAUNCH_NAMES[d.launch]||('reason '+d.launch)));
+  if(d.resumed)L.push('Continued after a close '+d.resumed+'&times;');
+  return '<div class="diag-block">'+L.join('<br>')+'</div>';
+}
 /* Sessions rebuilt by the watch after the app stopped mid-workout. */
 function renderRecovered(x){
   var r=x.recovered;if(!r)return '';
-  var closed=Number(r.event)===6;
-  return '<div class="recovered"><b>'+(closed?'Saved when the app was closed mid-workout.':'Recovered after the app stopped unexpectedly.')+'</b><br>Time and steps are up to the last minute recorded.</div>';
+  var ev=Number(r.event),closed=ev===6||ev===7;
+  var why=closed?'Saved when the app closed mid-workout.':'Recovered after the app stopped unexpectedly.';
+  var tail=closed?'Everything up to the close was kept.':(ev===8?'It stopped soon after something covered the app (a notification or alarm).':'Time and steps are up to the last save (within a minute).');
+  return '<div class="recovered"><b>'+why+'</b><br>'+tail+'</div>';
 }
 /* Pace by rep: reps of 60 s+ and 150 m+, bar length = speed. */
 function renderPaceChart(x){
@@ -459,7 +534,7 @@ function renderHistory(){
     var distText=distanceText(x);
     var sl=(x.steps>0||distText)?'<div class="meta">'+(x.steps>0?esc(x.steps)+' steps':'')+(x.steps>0&&distText?' &middot; ':'')+distText+(x.cadence?' &middot; ~'+esc(x.cadence)+' SPM avg':'')+'</div>':'';
     var hrl=x.avgHr>0?'<div class="meta">HR '+x.avgHr+' avg'+(x.maxHr>0?' &middot; '+x.maxHr+' max':'')+'</div>':'';
-    html+='<div class="history-card '+(x._open?'open':'')+'" onclick="toggleHistoryDetail('+i+')"><div class="card-top"><div class="history-main"><div class="history-name">'+esc(x.name)+'</div><div class="'+bc+'">'+esc(x.type)+'</div></div><button id="session-del-'+i+'" class="del-btn icon-delete" onclick="event.stopPropagation();requestDelete(\'session\','+i+')" aria-label="Delete session"><span class="icon-glyph">&#x00d7;</span></button></div><div class="meta">'+esc(hDate(x.date))+' &middot; '+esc(hDur(x.duration))+(x.pausedS>=5?' active &middot; +'+esc(hDur(x.pausedS))+' paused':'')+'</div>'+sl+hrl+gpsNote(x)+renderRecovered(x)+(x._open?gpsDetails(x):'')+'<div class="history-hint">'+(x._open?'Tap to collapse':'Tap for phase breakdown')+'</div>'+(x._open?renderPhaseDetail(x)+renderPaceChart(x):'')+'</div>';
+    html+='<div class="history-card '+(x._open?'open':'')+'" onclick="toggleHistoryDetail('+i+')"><div class="card-top"><div class="history-main"><div class="history-name">'+esc(x.name)+'</div><div class="'+bc+'">'+esc(x.type)+'</div></div><button id="session-del-'+i+'" class="del-btn icon-delete" onclick="event.stopPropagation();requestDelete(\'session\','+i+')" aria-label="Delete session"><span class="icon-glyph">&#x00d7;</span></button></div><div class="meta">'+esc(hDate(x.date))+' &middot; '+esc(hDur(x.duration))+(x.pausedS>=5?' active &middot; +'+esc(hDur(x.pausedS))+' paused':'')+'</div>'+sl+hrl+gpsNote(x)+renderRecovered(x)+(x._open?gpsDetails(x)+diagDetails(x):'')+'<div class="history-hint">'+(x._open?'Tap to collapse':'Tap for phase breakdown')+'</div>'+(x._open?renderPhaseDetail(x)+renderPaceChart(x):'')+'</div>';
   });
   e.innerHTML=html;
 }
@@ -469,7 +544,9 @@ function clearHistory(){var btn=document.getElementById('clear-history-btn');if(
 function collect(){
   settings.warnVibrate=document.getElementById('warn-cb').checked;
   settings.startCountdown=document.getElementById('countdown-cb').checked;
-  settings.showCadence=document.getElementById('cad-cb').checked;
+  settings.watchMetric=document.getElementById('metric-sel').value;
+  settings.paceBasis=document.getElementById('pace-sel').value;
+  settings.showCadence=settings.watchMetric==='cadence';
   settings.halfwayCue=document.getElementById('halfway-cb').checked;
   settings.soundMode=document.getElementById('sound-cb').checked?1:0;
   settings.useGps=document.getElementById('gps-cb').checked;
